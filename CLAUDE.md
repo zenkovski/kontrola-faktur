@@ -14,6 +14,9 @@ a lidsky vysvětlit nálezy. AI nikdy nemění `Decision`.
 - Data jsou smyšlená (`scripts/make_samples.py`). Žádné skutečné faktury do repa.
 - Žádné závislosti navíc bez důvodu. Jádro = jen stdlib.
 - Hlášky pro návštěvníka česky, kód a názvy anglicky.
+- Testy nikdy nevolají síť ani placené API (`tests/conftest.py`). Před pushem pustit testy i bez `claude` v PATH (jako CI).
+- U DeepSeeku přes OpenRouter vždy `reasoning: {enabled: false}` a před dávkou změřit jedno volání.
+- Placená čtení hlídá `DailyBudget` (výchozí 10 denně). Cache se nepočítá.
 
 ## Příkazy
 ```
@@ -22,7 +25,9 @@ python -m pytest -q              # testy
 python scripts/make_eval.py      # přegeneruje 40 eval faktur
 python scripts/run_eval.py --oracle    # měření bez AI (kontrola skriptu)
 python scripts/run_eval.py --offline   # jen uložené odpovědi, 0 $
-python scripts/run_eval.py             # ostré měření (potřebuje ANTHROPIC_API_KEY v .env)
+python scripts/run_eval.py --reader openrouter   # ostré měření DeepSeek Flash (OPENROUTER_API_KEY v .env, ~0,005 $)
+python scripts/run_eval.py --reader openrouter --offline   # totéž z cache, 0 $ (pouští i CI)
+python scripts/read_samples.py         # AI předem přečte 10 ukázek (aby web nespotřeboval denní limit)
 python -m uvicorn web.app:app --port 8765   # lokální web http://127.0.0.1:8765
 ```
 
