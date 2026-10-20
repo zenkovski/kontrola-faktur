@@ -60,7 +60,7 @@ Z PDF (textová vrstva) 10 z 10 bez chyby. Žádná chyba čtení nevedla ke sch
 špatná položka = REVIEW. Ukázky se proto čtou z PDF, fotky přes obrázek.
 **Další nápad:** QR platbu číst kódem (cv2) a porovnat s účtem a částkou, které přečetla AI.
 
-## 2026-10-21 — kontrola kódu jako senior: 3 cesty k falešnému schválení
+## 2026-10-20 — kontrola kódu jako senior: 3 cesty k falešnému schválení
 Postup: podezření nejdřív ověřit sondou na skutečném kódu, opravit jen potvrzené, zamknout testem (`tests/test_regressions.py`).
 
 **Potvrzeno a opraveno:**
@@ -79,3 +79,17 @@ Na stránce upozornění „Ukázkový projekt“, sekce „Z čeho je postaven�
 Testy: 108 zelených. Ověřeno i naživo: MCP přes skutečné stdio spojení (8 nástrojů), REST API na běžícím serveru, stránka na 1440 a 390 px bez chyb v konzoli.
 
 **Zůstává:** uživatelské účty a fronta ke schválení (kdo pustil platbu), ARES a registr DPH naživo, QR platba kódem, ostré měření 40 faktur přes API, veřejné nasazení.
+
+## 2026-10-20 noc — DeepSeek v4.1 Flash přes OpenRouter (stejné API jako RAG) + denní limit
+- `faktury/extract_openrouter.py` — čte **text PDF** (vytáhne ho PyMuPDF), stdlib urllib, `reasoning: {enabled: false}`,
+  `response_format: json_object`, 3 pokusy (i chyba s HTTP 200), cache v `data/extracted/`. Fotky neumí (jen text) →
+  fotky dál čte Claude CLI, bez něj srozumitelná hláška „nahraj PDF“.
+- Jedno měřené volání před dávkou (past ze RAG: skryté přemýšlení): 2,4 s, 826 + 140 tokenů, 0 tokenů přemýšlení, $0.00025, bez chyby.
+- `DailyBudget` — max 10 placených čtení denně pro celou instalaci (`KONTROLA_FAKTUR_AI_PER_DAY`), přežije restart
+  (`.tmp/ai-budget.json`), cache se nepočítá. Vyčerpáno → 429 na webu, REVIEW v `read_and_check`. `/v1/usage`, na stránce „zbývá X z 10“.
+- 10 ukázek přečteno DeepSeekem předem (10/10 přesně, 1–3 s), takže veřejná stránka limit na ukázky nespotřebuje.
+- **Měření 40 faktur:** 40/40 rozhodnutí, 0 falešných schválení, pole 40/40, 8/8 vzkazů jen opsáno, $0.0047 celkem, p50 1,4 s.
+  Odpovědi v `eval_cache/openrouter/` → CI pouští měření zdarma a selže na falešném schválení.
+- Oprava: „Vymazat paměť“ u souborové DB mazala faktury, ale ne jejich řádky (SQLite může id použít znovu).
+- `tests/conftest.py` — testy nikdy nesahají na síť ani na `.env`; OpenRouter testovaný přes falešné HTTP. 122 testů.
+- Naživo: nová PDF faktura nahraná přes stránku → DeepSeek 1,9 s → Zastavit (cizí účet), limit 10 → 9.

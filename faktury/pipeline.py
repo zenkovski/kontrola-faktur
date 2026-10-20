@@ -56,7 +56,7 @@ def _from_json(s: str) -> list[Finding]:
     return [Finding(d["code"], Severity(d["severity"]), d["message"], d["evidence"]) for d in json.loads(s)]
 
 
-RULES_VERSION = "2026-10-21"
+RULES_VERSION = "2026-10-20"
 
 READ_FROM_PHOTO = ("READ_FROM_PHOTO", Severity.REVIEW,
                    "Data přečetla AI z fotky. Z obrázku se pletou podobné číslice (8 a 6, 0 a 8), "

@@ -1,12 +1,15 @@
 """One service used by the web page, the REST API and the MCP server. No logic lives in the adapters."""
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
+import shutil
 import threading
 from dataclasses import asdict
 from pathlib import Path
 
+from . import extract_openrouter
 from .extract import ExtractionError
 from .extract_cli import read_file
 from .models import Invoice
@@ -16,6 +19,76 @@ from .store import Store
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 DOC_TYPES = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
+
+
+def load_env() -> None:
+    """Read KEY=VALUE lines from .env (gitignored) without overriding real environment variables."""
+    env = ROOT / ".env"
+    if os.environ.get("KONTROLA_FAKTUR_NO_DOTENV") or not env.exists():
+        return
+    for line in env.read_text(encoding="utf-8").splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"'))
+
+
+load_env()
+
+
+class BudgetExceeded(ExtractionError):
+    """The daily limit of paid AI reads is used up."""
+
+
+class DailyBudget:
+    """At most N paid AI reads per day for the whole installation. Survives restarts (small JSON file).
+    Cached reads (the demo invoices) never count."""
+
+    def __init__(self, limit: int, path: Path | None):
+        self.limit, self.path, self.lock = limit, path, threading.Lock()
+        self._mem = {"day": "", "used": 0}
+
+    def _load(self) -> dict:
+        if self.path and self.path.exists():
+            try:
+                return json.loads(self.path.read_text(encoding="utf-8"))
+            except ValueError:
+                pass
+        return dict(self._mem)
+
+    def _save(self, state: dict) -> None:
+        self._mem = state
+        if self.path:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(json.dumps(state), encoding="utf-8")
+
+    def spend(self) -> None:
+        with self.lock:
+            today = dt.date.today().isoformat()
+            state = self._load()
+            if state.get("day") != today:
+                state = {"day": today, "used": 0}
+            if state["used"] >= self.limit:
+                raise BudgetExceeded(f"Denní limit {self.limit} čtení přes AI je vyčerpaný. "
+                                     "Ukázkové faktury fungují dál, vlastní zkus zítra.")
+            state["used"] += 1
+            self._save(state)
+
+    def status(self) -> dict:
+        with self.lock:
+            state = self._load()
+            used = state["used"] if state.get("day") == dt.date.today().isoformat() else 0
+            return {"limit": self.limit, "used": used, "left": max(0, self.limit - used)}
+
+
+def reader_name() -> str:
+    """Which AI reads documents: 'openrouter' (DeepSeek Flash, public) or 'claude-cli' (local subscription)."""
+    choice = os.environ.get("KONTROLA_FAKTUR_READER", "auto")
+    if choice != "auto":
+        return choice
+    return "openrouter" if extract_openrouter.available() else "claude-cli"
+
+
+READER_LABEL = {"openrouter": "DeepSeek v4.1 Flash", "claude-cli": "Claude Haiku"}
 
 STEPS = [
     ("ico", "IČO dodavatele", {"ICO_INVALID"}),
@@ -51,19 +124,23 @@ Invoice numbers are compared without spaces, dashes and case ("FV-2026/0458" = "
 
 
 class Service:
-    def __init__(self, db_path: str = ":memory:"):
+    def __init__(self, db_path: str = ":memory:", budget: DailyBudget | None = None):
         self.books = Books.load(DATA)
         self.db_path = db_path
         self.store = Store(db_path)
         self.lock = threading.Lock()
+        self.budget = budget or DailyBudget(
+            int(os.environ.get("KONTROLA_FAKTUR_AI_PER_DAY", "10")),
+            Path(os.environ.get("KONTROLA_FAKTUR_BUDGET_FILE", ROOT / ".tmp" / "ai-budget.json")))
 
     def reset(self) -> None:
         with self.lock:
             self.store = Store(self.db_path) if self.db_path == ":memory:" else self._wipe()
 
     def _wipe(self) -> Store:
-        self.store.db.execute("DELETE FROM invoices")
-        self.store.db.commit()
+        with self.store.db:  # lines first: SQLite may reuse invoice ids, old lines must not stick to new invoices
+            self.store.db.execute("DELETE FROM invoice_lines")
+            self.store.db.execute("DELETE FROM invoices")
         return self.store
 
     def check(self, data: dict, document_text: str | None = None, source: str | None = None) -> dict:
@@ -99,11 +176,23 @@ class Service:
                                   "Copy the invoice there or set KONTROLA_FAKTUR_FILES.")
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {path}")
-        inv, raw, seconds, cached = read_file(path, DATA / "extracted")
         is_pdf = path.suffix.lower() == ".pdf"
+        text = pdf_text(path) if is_pdf else None
+        reader = reader_name()
+        if reader == "openrouter" and is_pdf:
+            if not text or len(text.strip()) < 40:
+                raise ExtractionError("PDF nemá textovou vrstvu (je to sken). Takové PDF čte jen lokální verze.")
+            inv, raw, seconds, cached, _ = extract_openrouter.read_text(text, DATA / "extracted", self.budget.spend)
+        elif reader == "openrouter" or not shutil.which("claude"):
+            if not shutil.which("claude"):
+                raise ExtractionError("Fotky umí přečíst jen lokální verze s Claude. Tady nahraj fakturu jako PDF.")
+            inv, raw, seconds, cached = read_file(path, DATA / "extracted")
+            reader = "claude-cli"
+        else:
+            inv, raw, seconds, cached = read_file(path, DATA / "extracted")
         return {"invoice": raw, "seconds": round(seconds, 1), "cached": cached,
-                "source": "pdf" if is_pdf else "photo",
-                "document_text": pdf_text(path) if is_pdf else None}
+                "source": "pdf" if is_pdf else "photo", "reader": READER_LABEL.get(reader, reader),
+                "document_text": text}
 
     def read_and_check(self, path: str | Path) -> dict:
         """Read with AI, then check. If the AI fails, the answer is REVIEW, never an error or APPROVE."""

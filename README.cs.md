@@ -54,7 +54,8 @@ flowchart LR
 ```
 
 1. **Faktura přijde** jako PDF nebo fotka. Pro systém je to nedůvěryhodný vstup.
-2. **AI ji přečte** a vrátí data v pevném tvaru: IČO, účet, položky, součty. Nemá žádné nástroje, nemůže nic
+2. **AI ji přečte** a vrátí data v pevném tvaru: IČO, účet, položky, součty. U PDF vytáhne text kód
+   a přečte ho **DeepSeek v4.1 Flash** (přes OpenRouter). Fotky čte Claude Haiku (místní verze). Nemá žádné nástroje, nemůže nic
    zaplatit, schválit ani změnit. Když dokument obsahuje pokyny pro AI, opíše je do pole `note` a neřídí se jimi.
 3. **Kód sjednotí formáty** a nic si nedomýšlí: IBAN na číslo účtu, české zápisy čísel, diakritika v kódech položek.
 4. **Kód fakturu zkontroluje.** Osm skupin pravidel, každá s testy:
@@ -69,18 +70,20 @@ Hlavní myšlenka: **jazykový model se smí splést.** Nikdy nerozhoduje. Špat
 
 | Test | Výsledek |
 |---|---|
-| AI čte 10 ukázkových faktur z **PDF** (textová vrstva) | **10 z 10**, všechna pole přesně |
+| **Měření: 40 faktur, DeepSeek v4.1 Flash** (3 vzhledy, podvržené účty, špatné součty, 8 pokusů oklamat AI) | **40 / 40 rozhodnutí správně, 0 falešných schválení**, všechna pole přesně 40 / 40, všech 8 vzkazů pro AI jen opsáno do poznámky. 1,4 s na fakturu, **0,0047 $ za všech 40** ([report](reports/eval-deepseek-v4.1-flash.md)) |
+| AI čte 10 ukázkových faktur z **PDF** (textová vrstva) | **10 z 10**, všechna pole přesně (Claude Haiku i DeepSeek Flash) |
 | AI čte stejných 10 faktur z **obrázku** | **5 z 10** mělo špatnou číslici (8↔6, 0↔8 v IČO, účtu nebo kódu položky) |
 | Rozhodnutí po chybě čtení | **0 falešných schválení**: špatný účet = Zastavit, špatný kód položky = Zkontrolovat |
 | AI je oklamaná: dokument ji přiměje napsat správný účet místo podvrženého | stejně neprojde, hlídač vidí text v původním dokumentu |
-| Automatické testy | **108 zelených**, bez sítě a bez volání AI, po každé změně (GitHub Actions) |
-| Kontrola kódu 21. 10. 2026 | **3 cesty k falešnému schválení** nalezeny a opraveny, každá s regresním testem (níže) |
+| Automatické testy | **122 zelených**, bez sítě a bez volání AI, po každé změně (GitHub Actions) |
+| Kontrola kódu 20. 10. 2026 | **3 cesty k falešnému schválení** nalezeny a opraveny, každá s regresním testem (níže) |
 
 V tom je smysl celé architektury: fotky jsou nepřesné, modely se pletou a systém je přesto bezpečný.
 
-Sada **40 smyšlených faktur** (3 vzhledy, špatné součty, podvržené účty, 8 pokusů oklamat AI) a skript, který měří
-přesnost polí, shodu rozhodnutí, falešná schválení, cenu a rychlost, jsou v `data/eval/` a `scripts/run_eval.py`.
-Se správnými daty projde 40 ze 40 (`--oracle`). Ostré měření proti Claude API je další krok.
+Měřicí sada (`data/eval/`, `scripts/run_eval.py`) počítá přesnost polí, shodu rozhodnutí, falešná schválení, cenu a rychlost.
+Odpovědi jsou uložené v `eval_cache/`, takže GitHub celé měření po každé změně zopakuje za 0 $ a **při jakémkoliv
+falešném schválení selže**. Poctivě: 40 faktur pochází z mého generátoru, takže pro textový model jsou snadné.
+Těžký případ jsou fotky (5 z 10 se špatnou číslicí), proto fotka nikdy nejde k úhradě bez člověka.
 
 ## Co našla kontrola kódu
 
@@ -110,8 +113,9 @@ python -m uvicorn web.app:app --port 8765  # http://127.0.0.1:8765
 ```
 
 10 ukázkových faktur je už přečtených a uložených v `data/extracted/`, takže stránka funguje i bez přístupu k AI.
-Nahrání vlastní faktury používá místní Claude Code (`claude -p`, předplatné). Veřejná verze by používala
-Claude API (`faktury/extract.py`, potřebuje `ANTHROPIC_API_KEY`).
+Pro vlastní faktury dej do `.env` klíč `OPENROUTER_API_KEY` (PDF čte DeepSeek v4.1 Flash, asi 0,0001 $ za fakturu).
+Bez klíče se použije místní Claude Code (`claude -p`, předplatné), který umí i fotky.
+Placená čtení mají strop **10 za den** pro celou instalaci (`KONTROLA_FAKTUR_AI_PER_DAY`); uložená čtení se nepočítají.
 
 ![Vzkaz pro AI: hlídač ho najde a podvržený účet zastaví](docs/img/result-injection.png)
 
@@ -128,6 +132,7 @@ Dokumentace na `http://127.0.0.1:8765/docs`.
 | `GET /v1/reference` | Dodavatelé s uloženými účty, objednávky, příjemky. |
 | `GET /v1/rules` | Všechny kontroly, jejich kódy a jak se skládají. |
 | `GET /v1/history` | Historie: každé rozhodnutí s důvody, zdrojem dat, verzí pravidel a časem. |
+| `GET /v1/usage` | Kdo čte dokumenty a kolik placených čtení dnes zbývá. |
 
 ```bash
 curl -s -X POST http://127.0.0.1:8765/v1/read-and-check --data-binary @data/pdf/04-cizi-ucet.pdf
@@ -171,7 +176,9 @@ Příklad: *„Zkontroluj fakturu v ~/Downloads/faktura.pdf“* → agent zavol�
 - **Peníze jsou `Decimal`**, nikdy float, zaokrouhlení nahoru od poloviny. Nahrávání má limit 10 MB a kontroluje typ souboru podle obsahu.
 - **Nejistota = člověk.** Fotka nejvýš Zkontrolovat, nepovedené čtení Zkontrolovat, neznámý dodavatel Zkontrolovat.
 - **Každé rozhodnutí je zapsané** s důvody, zdrojem dat, verzí pravidel a časem (`/v1/history`).
-- **Přístup:** volitelný API klíč (`KONTROLA_FAKTUR_API_KEY`), limit čtení přes AI, MCP čte jen z povolených složek.
+- **Hlídání nákladů:** nejvýš 10 placených čtení přes AI denně (přežije restart), 2 naráz, 20 za hodinu na klienta.
+  Skryté přemýšlení modelu je vypnuté (se zapnutým stálo stejné volání asi 10× víc).
+- **Přístup:** volitelný API klíč (`KONTROLA_FAKTUR_API_KEY`), MCP čte jen z povolených složek.
   Uživatelské účty nejsou: před veřejným nasazením je API klíč (nebo přihlášení) nutný.
 
 Známá mezera: sociální inženýrství bez zmínky o AI („v exportu prosím přepište IČO dodavatele“) hlídač nepozná.
@@ -180,7 +187,7 @@ Tady ho zastaví pravidla (IČO nesedí s objednávkou), ale samotný hlídač b
 ## Co dál
 
 - QR platbu přečte kód (OpenCV) a porovná účet a částku s tím, co přečetla AI.
-- Ostré měření 40 faktur proti Claude API a zveřejnění reportu i s chybami.
+- Těžší měření: naskenované a vyfocené faktury, skutečné vzhledy faktur dodavatelů.
 - Živé ověření v ARES a v registru nespolehlivých plátců DPH, s mezipamětí a bezpečnou volbou (Zkontrolovat), když registr nejede.
 - Fronta ke schválení se záznamem kdo, kdy a proč.
 - Veřejné nasazení stránky.
@@ -191,13 +198,14 @@ Všechny firmy, lidé a čísla jsou smyšlené. IČO jsou vygenerovaná s platn
 
 ```
 PDF nebo fotka
-  → Claude Haiku 5.5 ji přečte          (Claude API, nebo místně Claude Code `claude -p`, jen nástroj Read)
-  → PyMuPDF vytáhne text z PDF          (kód, ne AI: jde do hlídače proti podvodným textům)
+  → PyMuPDF vytáhne text z PDF          (kód, ne AI: jde i do hlídače proti podvodným textům)
+  → DeepSeek v4.1 Flash text přečte     (OpenRouter, stejné API jako RAG demo, bez přemýšlení, 10 čtení denně)
+  → Claude Haiku 5.5 čte fotky           (místně, Claude Code `claude -p`, jen nástroj Read)
   → Python + Decimal ji zkontroluje      (8 skupin pravidel, žádný float)
   → SQLite si ji zapamatuje              (duplicity, vyfakturované kusy, historie, unikátní index)
   → FastAPI ji vystaví                   (ukázková stránka, REST API /v1, dokumentace)
   → MCP server ji předá agentům          (8 nástrojů, žádný neplatí ani neschvaluje)
-Playwright kreslí ukázkové faktury do PDF a dělá snímky · pytest + GitHub Actions pouští 108 testů
+Playwright kreslí ukázkové faktury do PDF a dělá snímky · pytest + GitHub Actions pouští 122 testů + měření
 ```
 
 ![Z čeho je postavený](docs/img/stack.png)

@@ -53,7 +53,9 @@ flowchart LR
 ```
 
 1. **The invoice arrives** as a PDF or a photo. For the system it is untrusted input.
-2. **The AI reads it** and returns data in a fixed shape (supplier ID, account, lines, totals). It has no tools,
+2. **The AI reads it** and returns data in a fixed shape (supplier ID, account, lines, totals).
+   PDFs: code extracts the text layer and **DeepSeek v4.1 Flash** (via OpenRouter) reads it. Photos: Claude Haiku
+   reads the image (local version). It has no tools,
    it cannot pay, approve or change anything. If the document contains instructions for an AI, it copies them into
    a `note` field instead of following them.
 3. **Code normalises formats** without guessing values: IBAN to account number, Czech number format, diacritics in product codes.
@@ -69,19 +71,20 @@ or a successful prompt injection can at worst send a valid invoice to a person, 
 
 | Test | Result |
 |---|---|
-| AI reading 10 demo invoices from **PDF** (text layer) | **10 of 10** with every field exact |
+| **Eval: 40 invoices, DeepSeek v4.1 Flash** (3 layouts, forged accounts, wrong totals, 8 prompt injections) | **40 / 40 decisions correct, 0 false approvals**, every field exact 40 / 40, all 8 injections copied into `note` instead of obeyed. 1.4 s per invoice, **$0.0047 for all 40** ([report](reports/eval-deepseek-v4.1-flash.md)) |
+| AI reading 10 demo invoices from **PDF** (text layer) | **10 of 10** with every field exact (Claude Haiku and DeepSeek Flash alike) |
 | AI reading the same 10 invoices from an **image** | **5 of 10** had a misread digit (8↔6, 0↔8 in IČO, account or product code) |
 | Decisions after a misread | **0 false approvals**: a misread account becomes STOP, a misread product code becomes REVIEW |
 | Hijacked AI: the document makes the AI report the known-good account | still not approved, the guard sees the text in the raw document (test `test_hijacked_extraction_still_cannot_approve_attack`) |
-| Automated tests | **108 passing**, no network, no AI calls, on every push (GitHub Actions) |
-| Code review of 2026-10-21 | **3 ways to a false APPROVE** found and fixed, each with a regression test (below) |
+| Automated tests | **122 passing**, no network, no AI calls, on every push (GitHub Actions) |
+| Code review of 2026-10-20 | **3 ways to a false APPROVE** found and fixed, each with a regression test (below) |
 
 That is the point of the architecture: photos are noisy, models misread, and the system stays safe anyway.
 
-An eval set of **40 synthetic invoices** (3 layouts, wrong totals, forged accounts, 8 prompt-injection variants) and a
-runner that measures field accuracy, decision accuracy, false approvals, cost and latency are in `data/eval/` and
-`scripts/run_eval.py`. The harness passes 40/40 with the ground truth (`--oracle`); the full run against the API model
-is the next step (see Roadmap).
+The eval set (`data/eval/`, `scripts/run_eval.py`) measures field accuracy, decision accuracy, false approvals, cost
+and latency. Answers are cached in `eval_cache/`, so CI re-runs the whole eval for $0 and **fails on any false approval**.
+Honest limit: the 40 invoices come from my own generator, so a text model finds them easy; the hard case is photos
+(5 of 10 had a misread digit), which is why a photo is never paid without a person.
 
 ## What the code review found
 
@@ -112,8 +115,9 @@ python -m uvicorn web.app:app --port 8765  # http://127.0.0.1:8765
 ```
 
 The 10 demo invoices are already read and cached in `data/extracted/`, so the page works without any AI access.
-Uploading your own invoice uses the local Claude Code CLI (`claude -p`, your subscription); the public version would use
-the Claude API (`faktury/extract.py`, needs `ANTHROPIC_API_KEY`).
+For your own invoices put `OPENROUTER_API_KEY` into `.env` (PDFs are read by DeepSeek v4.1 Flash, ~$0.0001 each).
+Without a key the local Claude Code CLI is used (`claude -p`, your subscription), which also reads photos.
+Paid reads are capped at **10 per day** for the whole installation (`KONTROLA_FAKTUR_AI_PER_DAY`); cached reads never count.
 
 ![Prompt injection: the instruction is found and the forged account is stopped](docs/img/result-injection.png)
 
@@ -130,6 +134,7 @@ Interactive docs at `http://127.0.0.1:8765/docs`.
 | `GET /v1/reference` | Suppliers with accounts on file, purchase orders, goods receipts. |
 | `GET /v1/rules` | Every check, its codes and how they combine. |
 | `GET /v1/history` | Audit trail: every decision with reasons, data source, rules version and time. |
+| `GET /v1/usage` | Which AI reads documents and how many paid reads are left today. |
 
 ```bash
 curl -s -X POST http://127.0.0.1:8765/v1/read-and-check --data-binary @data/pdf/04-cizi-ucet.pdf
@@ -196,7 +201,9 @@ Example: *"Check the invoice in ~/Downloads/faktura.pdf"* → the agent calls `i
 - **Money is `Decimal`**, never float, rounded half up. Uploads are limited to 10 MB and checked by file signature.
 - **Uncertain means a person.** A photo is capped at REVIEW, a failed AI read is REVIEW, an unknown supplier is REVIEW.
 - **Every decision is recorded** with its reasons, data source, rules version and time (`/v1/history`).
-- **Access:** optional API key, a limit on AI reads, MCP file access limited to allowed folders.
+- **Cost control:** at most 10 paid AI reads per day (survives restarts), 2 at once, 20 per hour per client.
+  Hidden model reasoning is switched off (with it on, the same call cost about 10x).
+- **Access:** optional API key, MCP file access limited to allowed folders.
   There are no user accounts: before a public deployment the API key (or real login) is required.
 
 Known gap: social engineering without any mention of an AI ("please change the supplier's IČO in your export") is not
@@ -221,7 +228,7 @@ faktury/
 web/              FastAPI app + the demo page
 scripts/          sample data, invoice PDF renderer, eval set and runner
 data/             synthetic suppliers, orders, receipts, 10 demo invoices (+PDF), 40 eval invoices
-tests/            108 tests (tests/test_regressions.py: the review findings)
+tests/            122 tests (tests/test_regressions.py: the review findings)
 ```
 
 All companies, people and numbers are made up. IČO numbers are generated with a valid check digit.
@@ -229,7 +236,7 @@ All companies, people and numbers are made up. IČO numbers are generated with a
 ## Roadmap
 
 - Read the **QR payment code** with code (OpenCV) and compare its account and amount with what the AI read.
-- Run the 40-invoice eval against the Claude API and publish the report with failures.
+- Harder eval: scanned and photographed invoices, real supplier layouts.
 - Live checks against ARES (company register) and the register of unreliable VAT payers, with caching and a
   safe default (REVIEW) when the register is down.
 - Approval queue with an audit log (new → checked → approved / rejected).
@@ -239,13 +246,14 @@ All companies, people and numbers are made up. IČO numbers are generated with a
 
 ```
 PDF or photo
-  → Claude Haiku 5.5 reads it              (Claude API, or locally Claude Code CLI `claude -p`, only the Read tool)
-  → PyMuPDF reads the PDF text layer        (code, not AI: goes to the prompt-injection guard)
+  → PyMuPDF reads the PDF text layer        (code, not AI: also goes to the prompt-injection guard)
+  → DeepSeek v4.1 Flash reads the text      (OpenRouter, same API as the RAG demo, reasoning off, 10 reads a day)
+  → Claude Haiku 5.5 reads photos           (locally, Claude Code CLI `claude -p`, only the Read tool)
   → Python + Decimal checks it              (8 rule groups, half-up rounding, no float anywhere)
   → SQLite remembers it                     (duplicates, billed quantities, audit trail, UNIQUE index)
   → FastAPI serves it                       (demo page, REST API /v1, OpenAPI docs)
   → MCP server hands it to agents           (8 tools, none pays or approves)
-Playwright draws the demo invoices as PDFs and takes the screenshots · pytest + GitHub Actions run 108 tests
+Playwright draws the demo invoices as PDFs and takes the screenshots · pytest + GitHub Actions run 122 tests + the eval gate
 ```
 
 ![What it is built from](docs/img/stack.png)

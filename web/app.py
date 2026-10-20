@@ -27,7 +27,7 @@ from starlette.concurrency import run_in_threadpool
 
 from faktury.extract import ExtractionError
 from faktury.schemas import CheckOut, InvoiceIn, ReadOut
-from faktury.service import RULES, Service
+from faktury.service import RULES, BudgetExceeded, Service, reader_name
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -101,6 +101,8 @@ def _read(path: Path) -> dict:
         raise HTTPException(503, "AI teď čte jiné faktury. Zkus to za chvíli.")
     try:
         return service.read(path)
+    except BudgetExceeded as e:
+        raise HTTPException(429, str(e))
     except ExtractionError as e:
         raise HTTPException(422, str(e))
     except (PermissionError, ValueError) as e:
@@ -165,6 +167,12 @@ async def v1_read_and_check(request: Request):
     return await run_in_threadpool(_read_and_check, path)
 
 
+@app.get("/v1/usage", tags=["v1"], dependencies=[Depends(require_key)],
+         summary="Which AI reads documents and how many paid reads are left today")
+def v1_usage():
+    return {"reader": reader_name(), **service.budget.status()}
+
+
 @app.get("/v1/history", tags=["v1"], dependencies=[Depends(require_key)],
          summary="Audit trail: every decision with its reasons, source and rules version")
 def v1_history(limit: int = 50):
@@ -201,6 +209,11 @@ def index():
 @app.get("/api/samples", include_in_schema=False)
 def samples():
     return [{**d, "image": f"/doc/{d['id']}.png", "pdf": f"/doc/{d['id']}.pdf"} for d in service.demo_list()]
+
+
+@app.get("/api/usage", include_in_schema=False)
+def usage():
+    return {"reader": reader_name(), **service.budget.status()}
 
 
 @app.get("/api/books", include_in_schema=False)

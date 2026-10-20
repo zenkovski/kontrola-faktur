@@ -1,4 +1,4 @@
-"""Regression tests for problems found in the review of 2026-10-21.
+"""Regression tests for problems found in the review of 2026-10-20.
 
 Each problem was first confirmed with a probe script against the old code, then fixed.
 The common thread: ways an invoice could get APPROVE although it must not be paid.

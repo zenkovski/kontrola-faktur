@@ -60,8 +60,12 @@ def main():
     g.add_argument("--offline", action="store_true")
     g.add_argument("--oracle", action="store_true")
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--reader", choices=["claude-api", "openrouter"], default="claude-api",
+                    help="claude-api = Claude Haiku via Anthropic API, openrouter = DeepSeek v4.1 Flash")
     args = ap.parse_args()
-    mode = "oracle" if args.oracle else MODEL
+    from faktury import extract_openrouter as OR
+
+    mode = "oracle" if args.oracle else (OR.MODEL.split("/")[-1] if args.reader == "openrouter" else MODEL)
 
     truth = json.loads((EVAL / "truth.json").read_text(encoding="utf-8"))
     ids = sorted(truth)[: args.limit] if args.limit else sorted(truth)
@@ -86,10 +90,19 @@ def main():
             if args.oracle:
                 ex = Extraction(true_inv, t["invoice"], 0, 0, 0.0, cached=True)
             else:
-                ex = extract(text, client=client, cache_dir=CACHE)
+                if args.reader == "openrouter":
+                    if args.offline:
+                        OR.os.environ.pop("OPENROUTER_API_KEY", None)  # offline: a cache miss must fail, not pay
+                    inv_, raw_, sec_, cached_, usage_ = OR.read_text(text, CACHE / "openrouter")
+                    ex = Extraction(inv_, raw_, usage_.get("prompt_tokens", 0), usage_.get("completion_tokens", 0),
+                                    sec_, cached_)
+                    ex_cost = usage_.get("cost") or 0.0
+                else:
+                    ex = extract(text, client=client, cache_dir=CACHE)
+                    ex_cost = ex.cost_usd
             got_inv = ex.invoice
             row.update(input_tokens=ex.input_tokens, output_tokens=ex.output_tokens,
-                       latency_s=ex.latency_s, cost_usd=ex.cost_usd, cached=ex.cached, error=None)
+                       latency_s=ex.latency_s, cost_usd=ex_cost if not args.oracle else 0.0, cached=ex.cached, error=None)
             row["fields"] = {f: norm(f, getattr(got_inv, f)) == norm(f, getattr(true_inv, f)) for f in FIELDS}
             row["wrong"] = {f: [str(getattr(got_inv, f)), str(getattr(true_inv, f))]
                             for f, ok in row["fields"].items() if not ok}
@@ -122,7 +135,7 @@ def main():
     paid = [r for r in rows if not r["cached"]]
     lat = [r["latency_s"] for r in rows if r["latency_s"]]
     summary = {
-        "mode": mode, "prompt_version": PROMPT_VERSION, "date": date.today().isoformat(), "cases": n,
+        "mode": mode, "prompt_version": OR.PROMPT_VERSION if args.reader == "openrouter" else PROMPT_VERSION, "date": date.today().isoformat(), "cases": n,
         "decision_accuracy": dec_ok / n, "extraction_exact": exact / n, "field_accuracy": field_acc,
         "false_approvals": false_approve, "missed_stops": missed_stop, "over_strict": over_strict,
         "injection_hijacked": hijacked,
@@ -141,7 +154,8 @@ def main():
     out.mkdir(exist_ok=True)
     (out / f"eval-{mode}.json").write_text(json.dumps({"summary": summary, "rows": rows}, ensure_ascii=False,
                                                      indent=2, default=str), encoding="utf-8")
-    md = [f"# Eval: {mode} (prompt {PROMPT_VERSION}, {summary['date']})", "",
+    pv = OR.PROMPT_VERSION if args.reader == "openrouter" else PROMPT_VERSION
+    md = [f"# Eval: {mode} (prompt {pv}, {summary['date']})", "",
           f"- Cases: **{n}**",
           f"- Decision matches expected: **{dec_ok}/{n}**",
           f"- **False approvals (expected REVIEW/STOP, got APPROVE): {len(false_approve)}** {false_approve or ''}",

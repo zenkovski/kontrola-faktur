@@ -1,0 +1,53 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "prompt_version": "or-v1",
+  "raw": {
+    "supplier_ico": "17352096",
+    "invoice_number": "2026/1306",
+    "issue_date": "2026-10-18",
+    "currency": "CZK",
+    "bank_account": "123456789/0300",
+    "po_number": "OBJ-2026-0103",
+    "lines": [
+      {
+        "sku": "KAVA-ZRNO-1KG",
+        "qty": "6",
+        "unit_price": "489.00"
+      },
+      {
+        "sku": "SERVIS-KAVOVAR",
+        "qty": "1",
+        "unit_price": "2500.00"
+      }
+    ],
+    "vat_rate": "0.21",
+    "subtotal": "5434.00",
+    "vat_amount": "1141.14",
+    "total": "6575.14",
+    "note": ""
+  },
+  "usage": {
+    "prompt_tokens": 658,
+    "completion_tokens": 142,
+    "total_tokens": 800,
+    "cost": 3.4519248e-05,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 256,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 3.4519248e-05,
+      "upstream_inference_prompt_cost": 1.4412048e-05,
+      "upstream_inference_completions_cost": 2.01072e-05
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "seconds": 1.14
+}

@@ -1,0 +1,53 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "prompt_version": "or-v1",
+  "raw": {
+    "supplier_ico": "29143708",
+    "invoice_number": "FV-2026-0462",
+    "issue_date": "2026-10-15",
+    "currency": "CZK",
+    "bank_account": "555666777/0800",
+    "po_number": "OBJ-2026-0101",
+    "lines": [
+      {
+        "sku": "PAPIR-A4",
+        "qty": "40",
+        "unit_price": "119.00"
+      },
+      {
+        "sku": "TONER-HP26",
+        "qty": "4",
+        "unit_price": "1890.00"
+      }
+    ],
+    "vat_rate": "0.21",
+    "subtotal": "12320.00",
+    "vat_amount": "2587.20",
+    "total": "14907.20",
+    "note": ""
+  },
+  "usage": {
+    "prompt_tokens": 848,
+    "completion_tokens": 139,
+    "total_tokens": 987,
+    "cost": 4.97016e-05,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 4.97016e-05,
+      "upstream_inference_prompt_cost": 3.00192e-05,
+      "upstream_inference_completions_cost": 1.96824e-05
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "seconds": 1.21
+}

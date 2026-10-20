@@ -241,7 +241,7 @@ footer .built b{color:var(--text);font-weight:600}
   <div class="wrap">
     <h1>Zkus oklamat <span>kontrolu faktur</span></h1>
     <p>AI fakturu jen přečte. O platbě rozhoduje kód s testy. Vyber fakturu, uprav ji a sleduj, co systém udělá.</p>
-    <div class="meta"><span><b>8</b> skupin kontrol</span><span><b>108</b> testů</span><span><b>40</b> faktur v měřicí sadě</span><span>web · REST API · MCP</span></div>
+    <div class="meta"><span><b>8</b> skupin kontrol</span><span><b>122</b> testů</span><span><b>40</b> faktur v měřicí sadě</span><span>web · REST API · MCP</span></div>
     <p class="demonote"><b>Ukázkový projekt.</b> Firmy, faktury, objednávky i čísla účtů jsou smyšlené. Není to účetní software a nic nezaplatí. Ukazuje, jak zapojit AI do práce s penězi tak, aby se jí nemuselo věřit.</p>
   </div>
 </header>
@@ -260,7 +260,7 @@ footer .built b{color:var(--text);font-weight:600}
         <h2 id="title">Faktura</h2>
         <div class="docbar">
           <label class="upload">Nahrát nebo vyfotit fakturu<input type="file" id="file" accept="image/*,application/pdf"></label>
-          <span class="hint">JPG, PNG nebo PDF. Na mobilu jde rovnou vyfotit.</span>
+          <span class="hint" id="hint">PDF faktury. Ukázky vlevo fungují vždy.</span>
         </div>
         <div class="doc" id="doc"></div>
         <div class="readline" id="readline"></div>
@@ -316,7 +316,7 @@ footer .built b{color:var(--text);font-weight:600}
 <footer>
   <div class="wrap">
     <strong>Demo projekt, ne účetní software.</strong>
-    <span>smyšlená data · pravidla verze 2026-10-21 · 108 testů</span>
+    <span>smyšlená data · pravidla verze 2026-10-20 · 122 testů · měření 40/40</span>
     <a href="https://github.com/zenkovski/kontrola-faktur">GitHub</a>
     <a href="/docs">API dokumentace</a>
     <span>Nahrané faktury zůstávají na tomhle počítači ve složce .tmp/uploads.</span>
@@ -335,7 +335,16 @@ const GLYPH = {OK: "✓", INFO: "i", REVIEW: "!", STOP: "×"};
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money = x => (Math.round(x * 100) / 100).toFixed(2);
 
+async function usage() {
+  try {
+    const u = await fetch("/api/usage").then(r => r.json());
+    const photos = u.reader === "openrouter" ? "PDF faktury" : "PDF nebo fotka. Na mobilu jde rovnou vyfotit";
+    $("#hint").textContent = `${photos}. Vlastních faktur dnes zbývá ${u.left} z ${u.limit}. Ukázky vlevo fungují vždy.`;
+  } catch (e) {}
+}
+
 async function init() {
+  usage();
   [samples, books] = await Promise.all([fetch("/api/samples").then(r => r.json()), fetch("/api/books").then(r => r.json())]);
   $("#samples").innerHTML = samples.map((s, i) =>
     `<button class="sample" data-i="${i}"><b>${s.id.slice(0, 2)}</b><strong class="t">${esc(s.title)}</strong><span>${esc(s.story)}</span></button>`).join("");
@@ -364,7 +373,7 @@ function loaded(data, label) {
   original = structuredClone(data.invoice);
   current = structuredClone(original);
   $("#check").disabled = false;
-  $("#readline").innerHTML = `<span>Přečetla <b>AI (Claude Haiku)</b></span><span>${data.cached ? "uloženo z dřívějška" : `za ${data.seconds} s`}</span>` +
+  $("#readline").innerHTML = `<span>Přečetla <b>AI (${esc(data.reader || "Claude Haiku")})</b></span><span>${data.cached ? "uloženo z dřívějška" : `za ${data.seconds} s`}</span>` +
     `<span>${data.source === "photo" ? "z fotky: čísla ověří člověk" : "z PDF"}</span>` +
     (docPdf ? `<a href="${docPdf}" target="_blank">otevřít PDF</a>` : "") + `<span>${label}</span>`;
   $("#title").textContent = `Faktura ${current.invoice_number}`;
@@ -403,7 +412,7 @@ $("#file").addEventListener("change", e => {
   docPdf = isPdf ? URL.createObjectURL(f) : "";
   docImage = isPdf ? "" : URL.createObjectURL(f);
   setResultEmpty("Čekám, až AI fakturu přečte.");
-  readWith(fetch(`/api/upload?name=${encodeURIComponent(f.name)}`, {method: "POST", body: f}), "tvoje faktura");
+  readWith(fetch(`/api/upload?name=${encodeURIComponent(f.name)}`, {method: "POST", body: f}), "tvoje faktura").then(usage);
   e.target.value = "";
 });
 
@@ -507,15 +516,16 @@ $("#check").addEventListener("click", async () => {
 
 /* ---------- stack ---------- */
 const STACK = [
-  ["ph-brain", "Claude Haiku 5.5", "čte PDF a fotky, vrací data v pevném tvaru, bez nástrojů", .15, .16],
+  ["ph-eye", "Claude Haiku 5.5", "čte fotky (místní verze), vrací data v pevném tvaru", .15, .16],
+  ["ph-brain", "DeepSeek v4.1 Flash", "přes OpenRouter čte text PDF, bez přemýšlení, 10× denně", .34, .1],
   ["ph-terminal-window", "Claude Code CLI", "lokální čtení přes předplatné (claude -p, jen Read)", .15, .5],
   ["ph-file-pdf", "PyMuPDF", "text z PDF čte kód, ne AI: dostane ho hlídač", .15, .84],
-  ["ph-function", "Python + Decimal", "8 skupin pravidel, peníze přesně, zaokrouhlení nahoru", .5, .1],
+  ["ph-function", "Python + Decimal", "8 skupin pravidel, peníze přesně, zaokrouhlení nahoru", .66, .1],
   ["ph-database", "SQLite", "historie, duplicity, audit; jedinečnost hlídá index", .85, .16],
   ["ph-lightning", "FastAPI", "web + REST API /v1, API klíč, limit čtení", .85, .5],
   ["ph-plugs-connected", "MCP server", "8 nástrojů pro agenty, žádný neplatí ani neschvaluje", .85, .84],
   ["ph-printer", "Playwright", "kreslí faktury do PDF, fotí obrazovky", .32, .9],
-  ["ph-check-square-offset", "pytest + GitHub Actions", "108 testů po každé změně, bez sítě a bez AI", .68, .9],
+  ["ph-check-square-offset", "pytest + GitHub Actions", "122 testů + měření 40 faktur po každé změně", .68, .9],
 ];
 function renderHub() {
   $("#hub").insertAdjacentHTML("beforeend", STACK.map(([ic, t, s, x, y]) =>

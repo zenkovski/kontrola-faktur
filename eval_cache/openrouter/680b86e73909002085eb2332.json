@@ -1,0 +1,53 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "prompt_version": "or-v1",
+  "raw": {
+    "supplier_ico": "06182542",
+    "invoice_number": "VLT-77140",
+    "issue_date": "2026-10-16",
+    "currency": "CZK",
+    "bank_account": "19-4455667788/0100",
+    "po_number": "OBJ-2026-0102",
+    "lines": [
+      {
+        "sku": "HRIDEL-H25",
+        "qty": "10",
+        "unit_price": "1240.00"
+      },
+      {
+        "sku": "LOZISKO-6204",
+        "qty": "30",
+        "unit_price": "86.50"
+      }
+    ],
+    "vat_rate": "0.21",
+    "subtotal": "14995.00",
+    "vat_amount": "3148.95",
+    "total": "18143.95",
+    "note": ""
+  },
+  "usage": {
+    "prompt_tokens": 510,
+    "completion_tokens": 174,
+    "total_tokens": 684,
+    "cost": 0.00017694,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00017694,
+      "upstream_inference_prompt_cost": 5.253e-05,
+      "upstream_inference_completions_cost": 0.00012441
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "seconds": 1.31
+}
