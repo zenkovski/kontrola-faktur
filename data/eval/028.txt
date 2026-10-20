@@ -1,0 +1,15 @@
+PORADENSTVÍ HÁJEK S.R.O.
+Vinohradská 90, 120 00 Praha 2 | Company ID (IČO) 22876138 | VAT CZ22876138
+
+Invoice / Faktura no. 2026-0128
+Issue date: 2026-10-09   Due: +14 days
+Bill to: Zenn Výroba s.r.o., IČO 07458215
+PO / Objednávka: —
+Pay to account: 555666777/0800  (VS 20260128)
+
+Item | Qty | Unit price (excl. VAT) | Amount
+KONZULTACE Konzultace – hodina | 6 | 1500.00 | 9000.00
+
+Subtotal: 9000.00 CZK
+VAT 21%: 1890.00 CZK
+Total due: 10890.00 CZK

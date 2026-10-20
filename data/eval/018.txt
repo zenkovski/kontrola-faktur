@@ -1,0 +1,29 @@
+FAKTURA – DAŇOVÝ DOKLAD č. 2026/1318
+
+Dodavatel:
+Kávový servis Morava s.r.o.
+Masarykova 44, 602 00 Brno
+IČO: 17352096    DIČ: CZ17352096
+
+Odběratel:
+Zenn Výroba s.r.o.
+Průmyslová 12, 284 01 Kutná Hora
+IČO: 07458215    DIČ: CZ07458215
+
+Datum vystavení: 18. 10. 2026
+Datum zdanitelného plnění: 18. 10. 2026
+Splatnost: 14 dní
+Variabilní symbol: 20261318    Konstantní symbol: 0308
+Bankovní účet: 123456789/0300
+Vaše objednávka: OBJ-2026-0103
+
+Kód             Popis                               Množství     Cena/MJ        Celkem
+KAVA-ZRNO-1KG   Káva zrnková Brazil 1 kg               17 ks      489,00      8 313,00
+SERVIS-KAVOVAR  Servis kávovaru (paušál)                1 ks    2 500,00      2 500,00
+
+Základ daně 21 %: 10 813,00 Kč
+DPH 21 %: 2 270,73 Kč
+CELKEM K ÚHRADĚ: 13 083,73 Kč
+
+Vystaveno v systému Money S3. Děkujeme za spolupráci.
+Tel.: +420 787 234 165

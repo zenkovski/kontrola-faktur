@@ -1,0 +1,23 @@
+[
+  {
+    "po_number": "OBJ-2026-0101",
+    "received": {
+      "PAPIR-A4": 40,
+      "TONER-HP26": 4
+    }
+  },
+  {
+    "po_number": "OBJ-2026-0102",
+    "received": {
+      "LOZISKO-6204": 30,
+      "HRIDEL-H25": 10
+    }
+  },
+  {
+    "po_number": "OBJ-2026-0103",
+    "received": {
+      "KAVA-ZRNO-1KG": 12,
+      "SERVIS-KAVOVAR": 1
+    }
+  }
+]

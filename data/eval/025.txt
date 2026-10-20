@@ -1,0 +1,16 @@
+KÁVOVÝ SERVIS MORAVA S.R.O.
+Masarykova 44, 602 00 Brno | Company ID (IČO) 17352096 | VAT CZ17352096
+
+Invoice / Faktura no. 2026/1325
+Issue date: 2026-10-02   Due: +14 days
+Bill to: Zenn Výroba s.r.o., IČO 07458215
+PO / Objednávka: OBJ-2026-0103
+Pay to account: 123456789/0300  (VS 20261325)
+
+Item | Qty | Unit price (excl. VAT) | Amount
+KAVA-ZRNO-1KG Káva zrnková Brazil 1 kg | 6 | 489.00 | 2934.00
+SERVIS-KAVOVAR Servis kávovaru (paušál) | 1 | 2500.00 | 2500.00
+
+Subtotal: 5434.00 CZK
+VAT 21%: 1141.14 CZK
+Total due: 6075.14 CZK

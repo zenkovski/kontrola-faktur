@@ -1,0 +1,25 @@
+{
+  "supplier_ico": "17352096",
+  "invoice_number": "2026/1187",
+  "issue_date": "2026-10-13",
+  "currency": "CZK",
+  "bank_account": "123456789/0300",
+  "po_number": "OBJ-2026-0103",
+  "lines": [
+    {
+      "sku": "KAVA-ZRNO-1KG",
+      "qty": 12,
+      "unit_price": "529.00"
+    },
+    {
+      "sku": "SERVIS-KAVOVAR",
+      "qty": 1,
+      "unit_price": "2500.00"
+    }
+  ],
+  "vat_rate": "0.21",
+  "subtotal": "8848.00",
+  "vat_amount": "1858.08",
+  "total": "10706.08",
+  "note": ""
+}

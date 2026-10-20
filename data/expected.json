@@ -1,0 +1,52 @@
+{
+  "01-v-poradku": {
+    "decision": "APPROVE",
+    "story": "Vše sedí: objednávka, příjemka, ceny i účet.",
+    "title": "V pořádku"
+  },
+  "02-zdrazeno": {
+    "decision": "REVIEW",
+    "story": "Káva je o 8 % dražší, než bylo v objednávce.",
+    "title": "Zdraženo"
+  },
+  "03-nedodano": {
+    "decision": "REVIEW",
+    "story": "Fakturuje 50 ložisek, převzalo se jen 30.",
+    "title": "Nedodáno"
+  },
+  "04-cizi-ucet": {
+    "decision": "STOP",
+    "story": "Skutečný dodavatel, ale jiný bankovní účet. Typický podvod.",
+    "title": "Cizí účet"
+  },
+  "05-spatne-ico": {
+    "decision": "STOP",
+    "story": "IČO nemá platnou kontrolní číslici.",
+    "title": "Špatné IČO"
+  },
+  "06-spatny-soucet": {
+    "decision": "STOP",
+    "story": "Celková částka je o 1 000 Kč vyšší, než dává součet.",
+    "title": "Špatný součet"
+  },
+  "07-neznamy-dodavatel": {
+    "decision": "REVIEW",
+    "story": "Firma s platným IČO, ale nikdy jsme u ní neobjednali.",
+    "title": "Neznámý dodavatel"
+  },
+  "08-stejne-cislo": {
+    "decision": "STOP",
+    "story": "Stejné číslo jako faktura 01, jiné datum. Druhá platba nesmí projít.",
+    "title": "Stejné číslo"
+  },
+  "09-stejna-castka": {
+    "decision": "REVIEW",
+    "story": "Jiné číslo, ale stejná částka a den jako faktura 01.",
+    "title": "Stejná částka"
+  },
+  "10-vzkaz-pro-ai": {
+    "decision": "STOP",
+    "story": "Text ve faktuře žádá AI o schválení. Kód ho nečte, účet nesedí → stop.",
+    "title": "Vzkaz pro AI"
+  }
+}

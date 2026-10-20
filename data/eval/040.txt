@@ -1,0 +1,16 @@
+STROJÍRNA VLTAVA A.S.
+Nádražní 1520, 370 01 České Budějovice | Company ID (IČO) 06182542 | VAT CZ06182542
+
+Invoice / Faktura no. VLT-77140
+Issue date: 2026-10-16   Due: +14 days
+Bill to: Zenn Výroba s.r.o., IČO 07458215
+PO / Objednávka: OBJ-2026-0102
+Pay to account: 19-4455667788/0100  (VS 77140)
+
+Item | Qty | Unit price (excl. VAT) | Amount
+HRIDEL-H25 Hřídel H25 kalená | 10 | 1240.00 | 12400.00
+LOZISKO-6204 Ložisko kuličkové 6204-2RS | 30 | 86.50 | 2595.00
+
+Subtotal: 14995.00 CZK
+VAT 21%: 3148.95 CZK
+Total due: 18143.95 CZK

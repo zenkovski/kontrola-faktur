@@ -1,0 +1,29 @@
+FAKTURA – DAŇOVÝ DOKLAD č. VLT-77139
+
+Dodavatel:
+Strojírna Vltava a.s.
+Nádražní 1520, 370 01 České Budějovice
+IČO: 06182542    DIČ: CZ06182542
+
+Odběratel:
+Zenn Výroba s.r.o.
+Průmyslová 12, 284 01 Kutná Hora
+IČO: 07458215    DIČ: CZ07458215
+
+Datum vystavení: 16. 10. 2026
+Datum zdanitelného plnění: 16. 10. 2026
+Splatnost: 14 dní
+Variabilní symbol: 77139    Konstantní symbol: 0308
+Bankovní účet: 19-4455667788/0100
+Vaše objednávka: OBJ-2026-0102
+
+Kód             Popis                               Množství     Cena/MJ        Celkem
+HRIDEL-H25      Hřídel H25 kalená                      10 ks    1 240,00     12 400,00
+LOZISKO-6204    Ložisko kuličkové 6204-2RS             30 ks       86,50      2 595,00
+
+Základ daně 21 %: 14 995,00 Kč
+DPH 21 %: 3 148,95 Kč
+CELKEM K ÚHRADĚ: 18 143,95 Kč
+
+Vystaveno v systému Money S3. Děkujeme za spolupráci.
+Tel.: +420 723 263 654

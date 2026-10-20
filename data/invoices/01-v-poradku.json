@@ -1,0 +1,25 @@
+{
+  "supplier_ico": "29143705",
+  "invoice_number": "FV-2026-0458",
+  "issue_date": "2026-10-12",
+  "currency": "CZK",
+  "bank_account": "2400123456/2010",
+  "po_number": "OBJ-2026-0101",
+  "lines": [
+    {
+      "sku": "PAPIR-A4",
+      "qty": 40,
+      "unit_price": "119.00"
+    },
+    {
+      "sku": "TONER-HP26",
+      "qty": 4,
+      "unit_price": "1890.00"
+    }
+  ],
+  "vat_rate": "0.21",
+  "subtotal": "12320.00",
+  "vat_amount": "2587.20",
+  "total": "14907.20",
+  "note": ""
+}
