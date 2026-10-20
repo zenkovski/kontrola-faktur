@@ -76,7 +76,7 @@ or a successful prompt injection can at worst send a valid invoice to a person, 
 | AI reading the same 10 invoices from an **image** | **5 of 10** had a misread digit (8↔6, 0↔8 in IČO, account or product code) |
 | Decisions after a misread | **0 false approvals**: a misread account becomes STOP, a misread product code becomes REVIEW |
 | Hijacked AI: the document makes the AI report the known-good account | still not approved, the guard sees the text in the raw document (test `test_hijacked_extraction_still_cannot_approve_attack`) |
-| Automated tests | **122 passing**, no network, no AI calls, on every push (GitHub Actions) |
+| Automated tests | **123 passing**, no network, no AI calls, on every push (GitHub Actions) |
 | Code review of 2026-10-20 | **3 ways to a false APPROVE** found and fixed, each with a regression test (below) |
 
 That is the point of the architecture: photos are noisy, models misread, and the system stays safe anyway.
@@ -228,7 +228,7 @@ faktury/
 web/              FastAPI app + the demo page
 scripts/          sample data, invoice PDF renderer, eval set and runner
 data/             synthetic suppliers, orders, receipts, 10 demo invoices (+PDF), 40 eval invoices
-tests/            122 tests (tests/test_regressions.py: the review findings)
+tests/            123 tests (tests/test_regressions.py: the review findings)
 ```
 
 All companies, people and numbers are made up. IČO numbers are generated with a valid check digit.
@@ -253,7 +253,7 @@ PDF or photo
   → SQLite remembers it                     (duplicates, billed quantities, audit trail, UNIQUE index)
   → FastAPI serves it                       (demo page, REST API /v1, OpenAPI docs)
   → MCP server hands it to agents           (8 tools, none pays or approves)
-Playwright draws the demo invoices as PDFs and takes the screenshots · pytest + GitHub Actions run 122 tests + the eval gate
+Playwright draws the demo invoices as PDFs and takes the screenshots · pytest + GitHub Actions run 123 tests + the eval gate
 ```
 
 ![What it is built from](docs/img/stack.png)

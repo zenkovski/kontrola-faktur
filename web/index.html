@@ -241,7 +241,7 @@ footer .built b{color:var(--text);font-weight:600}
   <div class="wrap">
     <h1>Zkus oklamat <span>kontrolu faktur</span></h1>
     <p>AI fakturu jen přečte. O platbě rozhoduje kód s testy. Vyber fakturu, uprav ji a sleduj, co systém udělá.</p>
-    <div class="meta"><span><b>8</b> skupin kontrol</span><span><b>122</b> testů</span><span><b>40</b> faktur v měřicí sadě</span><span>web · REST API · MCP</span></div>
+    <div class="meta"><span><b>8</b> skupin kontrol</span><span><b>123</b> testů</span><span><b>40</b> faktur v měřicí sadě</span><span>web · REST API · MCP</span></div>
     <p class="demonote"><b>Ukázkový projekt.</b> Firmy, faktury, objednávky i čísla účtů jsou smyšlené. Není to účetní software a nic nezaplatí. Ukazuje, jak zapojit AI do práce s penězi tak, aby se jí nemuselo věřit.</p>
   </div>
 </header>
@@ -316,7 +316,7 @@ footer .built b{color:var(--text);font-weight:600}
 <footer>
   <div class="wrap">
     <strong>Demo projekt, ne účetní software.</strong>
-    <span>smyšlená data · pravidla verze 2026-10-20 · 122 testů · měření 40/40</span>
+    <span>smyšlená data · pravidla verze 2026-10-20 · 123 testů · měření 40/40</span>
     <a href="https://github.com/zenkovski/kontrola-faktur">GitHub</a>
     <a href="/docs">API dokumentace</a>
     <span>Nahrané faktury zůstávají na tomhle počítači ve složce .tmp/uploads.</span>
@@ -525,7 +525,7 @@ const STACK = [
   ["ph-lightning", "FastAPI", "web + REST API /v1, API klíč, limit čtení", .85, .5],
   ["ph-plugs-connected", "MCP server", "8 nástrojů pro agenty, žádný neplatí ani neschvaluje", .85, .84],
   ["ph-printer", "Playwright", "kreslí faktury do PDF, fotí obrazovky", .32, .9],
-  ["ph-check-square-offset", "pytest + GitHub Actions", "122 testů + měření 40 faktur po každé změně", .68, .9],
+  ["ph-check-square-offset", "pytest + GitHub Actions", "123 testů + měření 40 faktur po každé změně", .68, .9],
 ];
 function renderHub() {
   $("#hub").insertAdjacentHTML("beforeend", STACK.map(([ic, t, s, x, y]) =>

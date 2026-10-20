@@ -75,7 +75,7 @@ Hlavní myšlenka: **jazykový model se smí splést.** Nikdy nerozhoduje. Špat
 | AI čte stejných 10 faktur z **obrázku** | **5 z 10** mělo špatnou číslici (8↔6, 0↔8 v IČO, účtu nebo kódu položky) |
 | Rozhodnutí po chybě čtení | **0 falešných schválení**: špatný účet = Zastavit, špatný kód položky = Zkontrolovat |
 | AI je oklamaná: dokument ji přiměje napsat správný účet místo podvrženého | stejně neprojde, hlídač vidí text v původním dokumentu |
-| Automatické testy | **122 zelených**, bez sítě a bez volání AI, po každé změně (GitHub Actions) |
+| Automatické testy | **123 zelených**, bez sítě a bez volání AI, po každé změně (GitHub Actions) |
 | Kontrola kódu 20. 10. 2026 | **3 cesty k falešnému schválení** nalezeny a opraveny, každá s regresním testem (níže) |
 
 V tom je smysl celé architektury: fotky jsou nepřesné, modely se pletou a systém je přesto bezpečný.
@@ -205,7 +205,7 @@ PDF nebo fotka
   → SQLite si ji zapamatuje              (duplicity, vyfakturované kusy, historie, unikátní index)
   → FastAPI ji vystaví                   (ukázková stránka, REST API /v1, dokumentace)
   → MCP server ji předá agentům          (8 nástrojů, žádný neplatí ani neschvaluje)
-Playwright kreslí ukázkové faktury do PDF a dělá snímky · pytest + GitHub Actions pouští 122 testů + měření
+Playwright kreslí ukázkové faktury do PDF a dělá snímky · pytest + GitHub Actions pouští 123 testů + měření
 ```
 
 ![Z čeho je postavený](docs/img/stack.png)

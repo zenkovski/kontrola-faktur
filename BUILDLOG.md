@@ -93,3 +93,6 @@ Testy: 108 zelených. Ověřeno i naživo: MCP přes skutečné stdio spojení (
 - Oprava: „Vymazat paměť“ u souborové DB mazala faktury, ale ne jejich řádky (SQLite může id použít znovu).
 - `tests/conftest.py` — testy nikdy nesahají na síť ani na `.env`; OpenRouter testovaný přes falešné HTTP. 122 testů.
 - Naživo: nová PDF faktura nahraná přes stránku → DeepSeek 1,9 s → Zastavit (cizí účet), limit 10 → 9.
+- **Past (CI červená):** služba kontrolovala „je nainstalovaný Claude Code?“ dřív, než se podívala do cache.
+  U mě lokálně prošlo (Claude mám), v CI ne. Na serveru bez Claude by nefungovaly ani uložené odpovědi.
+  Teď cache první; test `test_cached_answers_work_without_claude_installed`. Testy pouštím i s Claude vyřazeným z PATH. 123 testů.

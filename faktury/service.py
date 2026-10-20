@@ -183,13 +183,17 @@ class Service:
             if not text or len(text.strip()) < 40:
                 raise ExtractionError("PDF nemá textovou vrstvu (je to sken). Takové PDF čte jen lokální verze.")
             inv, raw, seconds, cached, _ = extract_openrouter.read_text(text, DATA / "extracted", self.budget.spend)
-        elif reader == "openrouter" or not shutil.which("claude"):
-            if not shutil.which("claude"):
-                raise ExtractionError("Fotky umí přečíst jen lokální verze s Claude. Tady nahraj fakturu jako PDF.")
-            inv, raw, seconds, cached = read_file(path, DATA / "extracted")
-            reader = "claude-cli"
         else:
-            inv, raw, seconds, cached = read_file(path, DATA / "extracted")
+            # cache first: a cached answer needs no Claude Code installed (e.g. in CI or on a server)
+            try:
+                inv, raw, seconds, cached = read_file(path, DATA / "extracted")
+            except ExtractionError:
+                if shutil.which("claude"):
+                    raise
+                raise ExtractionError("Fotky umí přečíst jen lokální verze s Claude. Tady nahraj fakturu jako PDF."
+                                      if not is_pdf else
+                                      "Čtení PDF tu není nastavené (chybí OPENROUTER_API_KEY i Claude Code).")
+            reader = "claude-cli"
         return {"invoice": raw, "seconds": round(seconds, 1), "cached": cached,
                 "source": "pdf" if is_pdf else "photo", "reader": READER_LABEL.get(reader, reader),
                 "document_text": text}

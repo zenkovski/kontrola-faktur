@@ -135,11 +135,27 @@ def test_exhausted_budget_makes_read_and_check_review(monkeypatch, tmp_path):
     assert out["check"]["decision"] == "REVIEW"
 
 
-def test_public_reader_refuses_photos_without_claude(monkeypatch, tmp_path):
+def test_public_reader_refuses_new_photos_without_claude(monkeypatch, tmp_path):
+    """On a server without Claude Code a new photo gets a clear message (cached demo photos still work)."""
+    from faktury import extract_cli
+
     monkeypatch.setenv("KONTROLA_FAKTUR_READER", "openrouter")
+    monkeypatch.setenv("KONTROLA_FAKTUR_FILES", str(tmp_path))
     monkeypatch.setattr(S.shutil, "which", lambda name: None)
+    monkeypatch.setattr(extract_cli.shutil, "which", lambda name: None)
+    photo = tmp_path / "nova.png"
+    photo.write_bytes((DATA / "pdf" / "01-v-poradku.png").read_bytes() + b"new")  # not in the cache
     with pytest.raises(ExtractionError, match="PDF"):
-        Service().read(DATA / "pdf" / "01-v-poradku.png")
+        Service().read(photo)
+
+
+def test_cached_answers_work_without_claude_installed(monkeypatch):
+    """Regression: CI has no Claude Code. Cached answers must not require it."""
+    from faktury import extract_cli
+
+    monkeypatch.setattr(S.shutil, "which", lambda name: None)
+    monkeypatch.setattr(extract_cli.shutil, "which", lambda name: None)
+    assert Service().read(DATA / "pdf" / "04-cizi-ucet.pdf")["cached"]
 
 
 def test_scanned_pdf_without_text_is_refused(monkeypatch):
