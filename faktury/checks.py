@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .ico import ico_valid
-from .models import Finding, Invoice, PurchaseOrder, Receipt, Severity, Supplier, money
+from .models import Finding, Invoice, PurchaseOrder, Receipt, Severity, Supplier, account_key, money
 
 PRICE_TOLERANCE = Decimal("0.01")  # 1 % unit price difference is still OK
 VAT_TOLERANCE = Decimal("1.00")  # rounding on the invoice, CZK
@@ -37,12 +37,27 @@ def check_arithmetic(inv: Invoice) -> list[Finding]:
     return out
 
 
+def check_amounts(inv: Invoice) -> list[Finding]:
+    """A zero or negative invoice, or a negative line, is not a normal purchase (credit note, error, trick)."""
+    out = []
+    if inv.total <= 0:
+        out.append(Finding("TOTAL_NOT_POSITIVE", Severity.REVIEW,
+                           f"Celková částka je {inv.total}. Nulová nebo záporná faktura není běžný nákup.",
+                           {"total": str(inv.total)}))
+    bad = [l.sku for l in inv.lines if l.qty <= 0 or l.unit_price < 0]
+    if bad:
+        out.append(Finding("LINE_NOT_POSITIVE", Severity.REVIEW,
+                           f"Položky s nulovým nebo záporným množstvím či cenou: {', '.join(bad)}.",
+                           {"skus": bad}))
+    return out
+
+
 def check_supplier(inv: Invoice, supplier: Supplier | None) -> list[Finding]:
     if supplier is None:
         return [Finding("SUPPLIER_UNKNOWN", Severity.REVIEW,
                         f"Dodavatel s IČO {inv.supplier_ico} není v seznamu dodavatelů.",
                         {"ico": inv.supplier_ico})]
-    if supplier.bank_account != inv.bank_account:
+    if account_key(supplier.bank_account) != account_key(inv.bank_account):
         # Classic invoice fraud: real supplier, attacker's bank account.
         return [Finding("BANK_ACCOUNT_CHANGED", Severity.STOP,
                         f"Účet na faktuře ({inv.bank_account}) není účet, který máme u dodavatele "
@@ -51,7 +66,13 @@ def check_supplier(inv: Invoice, supplier: Supplier | None) -> list[Finding]:
     return []
 
 
-def check_three_way(inv: Invoice, po: PurchaseOrder | None, rcpt: Receipt | None) -> list[Finding]:
+def check_three_way(inv: Invoice, po: PurchaseOrder | None, rcpt: Receipt | None,
+                    already_invoiced: dict[str, Decimal] | None = None) -> list[Finding]:
+    """Invoice vs purchase order vs goods receipt.
+
+    Quantities are summed per product across the lines of this invoice AND across earlier invoices
+    for the same order, so neither splitting a line nor a second invoice can bill more than arrived.
+    """
     if po is None:
         return [Finding("PO_MISSING", Severity.REVIEW,
                         f"K faktuře se nenašla objednávka {inv.po_number or '(neuvedena)'}.",
@@ -68,28 +89,38 @@ def check_three_way(inv: Invoice, po: PurchaseOrder | None, rcpt: Receipt | None
 
     ordered = {l.sku: l for l in po.lines}
     received = rcpt.received if rcpt else {}
+    earlier = already_invoiced or {}
     if rcpt is None:
         out.append(Finding("RECEIPT_MISSING", Severity.REVIEW,
                            "Zboží zatím nikdo nepřevzal (chybí příjemka).", {"po_number": po.po_number}))
 
+    this_invoice: dict[str, Decimal] = {}
     for line in inv.lines:
+        this_invoice[line.sku] = this_invoice.get(line.sku, Decimal(0)) + line.qty
         o = ordered.get(line.sku)
-        if o is None:
-            out.append(Finding("LINE_NOT_ORDERED", Severity.REVIEW,
-                               f"Položka {line.sku} na objednávce není.", {"sku": line.sku}))
-            continue
-        if line.qty > o.qty:
-            out.append(Finding("QTY_OVER_ORDERED", Severity.REVIEW,
-                               f"{line.sku}: fakturováno {line.qty} ks, objednáno {o.qty} ks.",
-                               {"sku": line.sku, "invoiced": str(line.qty), "ordered": str(o.qty)}))
-        if rcpt is not None and line.qty > received.get(line.sku, Decimal(0)):
-            out.append(Finding("QTY_OVER_RECEIVED", Severity.REVIEW,
-                               f"{line.sku}: fakturováno {line.qty} ks, převzato "
-                               f"{received.get(line.sku, Decimal(0))} ks.",
-                               {"sku": line.sku, "invoiced": str(line.qty),
-                                "received": str(received.get(line.sku, Decimal(0)))}))
-        if abs(line.unit_price - o.unit_price) > o.unit_price * PRICE_TOLERANCE:
+        if o is not None and abs(line.unit_price - o.unit_price) > o.unit_price * PRICE_TOLERANCE:
             out.append(Finding("PRICE_MISMATCH", Severity.REVIEW,
                                f"{line.sku}: cena {line.unit_price}, v objednávce {o.unit_price}.",
                                {"sku": line.sku, "invoice": str(line.unit_price), "po": str(o.unit_price)}))
+
+    for sku, qty in this_invoice.items():
+        o = ordered.get(sku)
+        if o is None:
+            out.append(Finding("LINE_NOT_ORDERED", Severity.REVIEW,
+                               f"Položka {sku} na objednávce není.", {"sku": sku}))
+            continue
+        before = earlier.get(sku, Decimal(0))
+        total = before + qty
+        note = f" (z toho {before} ks už na dřívějších fakturách)" if before else ""
+        if total > o.qty:
+            out.append(Finding("QTY_OVER_ORDERED", Severity.REVIEW,
+                               f"{sku}: fakturováno celkem {total} ks{note}, objednáno {o.qty} ks.",
+                               {"sku": sku, "invoiced_total": str(total), "earlier": str(before),
+                                "ordered": str(o.qty)}))
+        got = received.get(sku, Decimal(0))
+        if rcpt is not None and total > got:
+            out.append(Finding("QTY_OVER_RECEIVED", Severity.REVIEW,
+                               f"{sku}: fakturováno celkem {total} ks{note}, převzato {got} ks.",
+                               {"sku": sku, "invoiced_total": str(total), "earlier": str(before),
+                                "received": str(got)}))
     return out

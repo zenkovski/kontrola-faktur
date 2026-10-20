@@ -56,8 +56,17 @@ def _from_json(s: str) -> list[Finding]:
     return [Finding(d["code"], Severity(d["severity"]), d["message"], d["evidence"]) for d in json.loads(s)]
 
 
-def process(inv: Invoice, books: Books, store: Store, raw_text: str | None = None) -> Result:
-    """raw_text = the original document. Only the guard scans it; the rules never read text."""
+RULES_VERSION = "2026-10-21"
+
+READ_FROM_PHOTO = ("READ_FROM_PHOTO", Severity.REVIEW,
+                   "Data přečetla AI z fotky. Z obrázku se pletou podobné číslice (8 a 6, 0 a 8), "
+                   "proto fotka nikdy nejde k úhradě bez kontroly člověkem. Z PDF tohle neplatí.")
+
+
+def process(inv: Invoice, books: Books, store: Store, raw_text: str | None = None,
+            source: str | None = None) -> Result:
+    """raw_text = the original document. Only the guard scans it; the rules never read text.
+    source = where the data came from: "pdf", "photo", "manual" or None (for the audit trail)."""
     h = content_hash(inv)
 
     # 1) Idempotence: the exact same document again changes nothing.
@@ -73,11 +82,15 @@ def process(inv: Invoice, books: Books, store: Store, raw_text: str | None = Non
     findings: list[Finding] = []
     findings += checks.check_ico(inv)
     findings += checks.check_arithmetic(inv)
+    findings += checks.check_amounts(inv)
     findings += checks.check_supplier(inv, books.suppliers.get(inv.supplier_ico))
     po = books.orders.get(inv.po_number) if inv.po_number else None
-    findings += checks.check_three_way(inv, po, books.receipts.get(inv.po_number or ""))
+    findings += checks.check_three_way(inv, po, books.receipts.get(inv.po_number or ""),
+                                       store.invoiced_qty(inv.po_number))
     if raw_text is not None:
         findings += scan_document(raw_text)
+    if source == "photo":
+        findings.append(Finding(*READ_FROM_PHOTO, {"source": source}))
 
     # 3) Duplicates against what we already have.
     dup = store.live_with_number(inv.supplier_ico, inv.invoice_number)
@@ -97,12 +110,12 @@ def process(inv: Invoice, books: Books, store: Store, raw_text: str | None = Non
 
     # 4) Save. The UNIQUE index is the last line of defence (two requests at once).
     try:
-        invoice_id = store.insert(h, inv, decision.value, _to_json(findings))
+        invoice_id = store.insert(h, inv, decision.value, _to_json(findings), source, RULES_VERSION)
     except sqlite3.IntegrityError:
         if store.by_hash(h) is not None:  # the same document won the race -> replay
-            return process(inv, books, store)
+            return process(inv, books, store, raw_text, source)
         findings.append(Finding("DUPLICATE_NUMBER", Severity.STOP,
                                 "Stejná faktura se zpracovává podruhé současně.", {}))
         decision = Decision.STOP
-        invoice_id = store.insert(h, inv, decision.value, _to_json(findings))
+        invoice_id = store.insert(h, inv, decision.value, _to_json(findings), source, RULES_VERSION)
     return Result(decision, findings, invoice_id=invoice_id)

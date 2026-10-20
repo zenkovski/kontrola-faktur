@@ -79,8 +79,8 @@ def test_mcp_tools_and_annotations():
 
     tools = {t.name: t for t in asyncio.run(m.mcp.list_tools())}
     assert set(tools) == {"invoice_check", "invoice_read_file", "invoice_read_and_check", "invoice_list_demo",
-                          "invoice_get_demo", "invoice_reference_data", "invoice_rules"}
-    for name in ("invoice_list_demo", "invoice_get_demo", "invoice_reference_data", "invoice_rules"):
+                          "invoice_get_demo", "invoice_reference_data", "invoice_rules", "invoice_history"}
+    for name in ("invoice_list_demo", "invoice_get_demo", "invoice_reference_data", "invoice_rules", "invoice_history"):
         assert tools[name].annotations.read_only_hint is True
     assert not any("pay" in n or "approve" in n for n in tools)  # nothing pays or approves
 

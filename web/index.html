@@ -7,6 +7,7 @@
 <meta name="description" content="AI fakturu jen přečte, o platbě rozhoduje kód. Zkus systém oklamat.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* paleta „Bright Leaf + Emerald Green“, stejná jako RAG-Demo */
@@ -177,6 +178,40 @@ td input{margin:0;padding:6px 9px}
 .go:disabled{opacity:.45;cursor:default;box-shadow:none}
 @media (max-width:760px){.doc{height:380px}.doc img{max-height:356px}}
 
+
+/* demo upozornění */
+.demonote{max-width:660px;margin:22px auto 0;padding:11px 16px;border:1px solid rgb(var(--accent-rgb) / .35);background:rgb(var(--accent-rgb) / .07);border-radius:14px;font-size:13.5px;line-height:1.55;color:var(--soft);text-align:left}
+.demonote b{color:var(--text);font-weight:600}
+.sec .demonote{margin:18px 0 0;max-width:none}
+
+/* stack (hvězdicové schéma, stejně jako RAG-Demo) */
+.hub{position:relative;height:480px;border:1px solid var(--line-2);border-radius:20px;background:radial-gradient(500px 260px at 50% 50%,rgb(var(--accent-rgb) / .08),transparent),var(--bg-2);overflow:hidden}
+.hub svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hub .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:96px;border-radius:22px;display:grid;place-items:center;background:var(--panel-2);border:1px solid rgb(var(--accent-rgb) / .6);box-shadow:0 0 0 6px rgb(var(--accent-rgb) / .05),0 0 50px rgb(var(--accent-rgb) / .3);color:var(--accent);font-size:42px}
+.hub .it{position:absolute;transform:translate(-50%,-50%);width:200px;background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.hub .it i{font-size:20px;color:var(--accent);margin-top:2px}
+.hub .it b{display:block;font-size:13.5px;font-weight:600}
+.hub .it span{display:block;font-size:11.5px;color:var(--muted);line-height:1.4}
+.hub .it:hover{border-color:rgb(var(--accent-rgb) / .6)}
+.hwire{fill:none;stroke:#244043;stroke-width:1.2;stroke-dasharray:4 6}
+@media (prefers-reduced-motion:no-preference){ .hwire{animation:hdash 2.2s linear infinite} @keyframes hdash{to{stroke-dashoffset:-20}} }
+@media (max-width:1000px){
+  .hub{height:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px}
+  .hub svg{display:none}
+  .hub .core{position:static;transform:none;grid-column:1/-1;width:100%;height:64px;font-size:30px}
+  .hub .it{position:static;transform:none;width:auto}
+}
+@media (max-width:520px){.hub{grid-template-columns:1fr}}
+
+/* patička */
+footer{margin-top:90px;border-top:1px solid var(--line);padding:26px 0 30px;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+footer .wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+footer strong{color:var(--bad);font-weight:500}
+footer a{color:var(--soft)}
+footer .built{display:flex;gap:10px;align-items:flex-start;text-decoration:none;flex-basis:100%;max-width:760px;margin-top:6px;font-family:var(--sans);font-size:12.5px;line-height:1.5;color:var(--muted)}
+footer .built svg{width:20px;height:20px;flex:none;margin-top:1px}
+footer .built b{color:var(--text);font-weight:600}
+
 /* jak to funguje */
 .sec{padding:80px 0 0}
 .sec h2{font-family:var(--display);font-weight:760;font-size:clamp(30px,3.6vw,50px);line-height:1.02;letter-spacing:-.03em;margin:0 0 12px;max-width:20ch}
@@ -198,6 +233,7 @@ td input{margin:0;padding:6px 9px}
   <a class="logo" href="#"><span class="m">✓</span>Kontrola faktur</a>
   <a class="l" href="#app">Vyzkoušet</a>
   <a class="l opt" href="#jak">Jak to funguje</a>
+  <a class="l opt" href="#stack">Z čeho je</a>
 </div></nav>
 
 <header class="hero">
@@ -205,7 +241,8 @@ td input{margin:0;padding:6px 9px}
   <div class="wrap">
     <h1>Zkus oklamat <span>kontrolu faktur</span></h1>
     <p>AI fakturu jen přečte. O platbě rozhoduje kód s testy. Vyber fakturu, uprav ji a sleduj, co systém udělá.</p>
-    <div class="meta"><span><b>6</b> kontrol</span><span><b>55</b> testů</span><span><b>40</b> faktur v měřicí sadě</span><span>data jsou smyšlená</span></div>
+    <div class="meta"><span><b>8</b> skupin kontrol</span><span><b>108</b> testů</span><span><b>40</b> faktur v měřicí sadě</span><span>web · REST API · MCP</span></div>
+    <p class="demonote"><b>Ukázkový projekt.</b> Firmy, faktury, objednávky i čísla účtů jsou smyšlené. Není to účetní software a nic nezaplatí. Ukazuje, jak zapojit AI do práce s penězi tak, aby se jí nemuselo věřit.</p>
   </div>
 </header>
 
@@ -262,7 +299,30 @@ td input{margin:0;padding:6px 9px}
       <div class="fn"><span class="n">04</span><h3>Člověk rozhodne</h3><p>Co nesedí, jde k člověku. Co je podvod, se zastaví. U každého výsledku je důvod.</p></div>
     </div>
   </section>
+
+  <section class="sec" id="stack">
+    <h2>Z čeho je <span>postavený</span></h2>
+    <p class="sub">Žádná krabicová platforma. Každý díl jde vysvětlit, otestovat a vyměnit.</p>
+    <div class="hub" id="hub">
+      <svg id="hubwires" aria-hidden="true"></svg>
+      <div class="core"><i class="ph ph-receipt"></i></div>
+    </div>
+    <p class="demonote"><b>Co by přibylo ve skutečné firmě:</b> napojení na účetní program (Pohoda, Money S3) místo smyšlených
+      objednávek, ověření v ARES a v registru nespolehlivých plátců DPH, přihlášení uživatelů a fronta ke schválení
+      s podpisem, kdo platbu pustil.</p>
+  </section>
 </main>
+
+<footer>
+  <div class="wrap">
+    <strong>Demo projekt, ne účetní software.</strong>
+    <span>smyšlená data · pravidla verze 2026-10-21 · 108 testů</span>
+    <a href="https://github.com/zenkovski/kontrola-faktur">GitHub</a>
+    <a href="/docs">API dokumentace</a>
+    <span>Nahrané faktury zůstávají na tomhle počítači ve složce .tmp/uploads.</span>
+    <a class="built" href="https://claude.com/claude-code" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><span><b>Postaveno s Claude Code (Opus 5.5).</b> Kód napsala AI. Já jsem řídil, co se staví, nechal kód prověřit review (které našlo 3 cesty k falešnému schválení), testoval a ověřoval výsledky.</span></a>
+  </div>
+</footer>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -297,11 +357,15 @@ function setResultEmpty(text) {
   $("#result").innerHTML = `<h2>Výsledek</h2><div class="empty">${text}</div>`;
 }
 
+let readMeta = {source: null, document_text: null};
+
 function loaded(data, label) {
+  readMeta = {source: data.source || null, document_text: data.document_text || null};
   original = structuredClone(data.invoice);
   current = structuredClone(original);
   $("#check").disabled = false;
   $("#readline").innerHTML = `<span>Přečetla <b>AI (Claude Haiku)</b></span><span>${data.cached ? "uloženo z dřívějška" : `za ${data.seconds} s`}</span>` +
+    `<span>${data.source === "photo" ? "z fotky: čísla ověří člověk" : "z PDF"}</span>` +
     (docPdf ? `<a href="${docPdf}" target="_blank">otevřít PDF</a>` : "") + `<span>${label}</span>`;
   $("#title").textContent = `Faktura ${current.invoice_number}`;
   render(); showDoc();
@@ -423,7 +487,8 @@ $("#reset").addEventListener("click", async () => {
 
 $("#check").addEventListener("click", async () => {
   $("#error").hidden = true;
-  const r = await fetch("/api/check", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(current)});
+  const r = await fetch("/api/check", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({invoice: current, ...readMeta})});
   const data = await r.json();
   if (!r.ok) { $("#error").textContent = data.detail; $("#error").hidden = false; return; }
   const steps = data.steps.map(s => `<li class="step s-${s.status}">
@@ -438,6 +503,38 @@ $("#check").addEventListener("click", async () => {
       Systém si taky pamatuje zpracované faktury. Zkus stejnou fakturu poslat dvakrát.</div>`;
   $("#result").scrollIntoView({behavior: "smooth", block: "nearest"});
 });
+
+
+/* ---------- stack ---------- */
+const STACK = [
+  ["ph-brain", "Claude Haiku 5.5", "čte PDF a fotky, vrací data v pevném tvaru, bez nástrojů", .15, .16],
+  ["ph-terminal-window", "Claude Code CLI", "lokální čtení přes předplatné (claude -p, jen Read)", .15, .5],
+  ["ph-file-pdf", "PyMuPDF", "text z PDF čte kód, ne AI: dostane ho hlídač", .15, .84],
+  ["ph-function", "Python + Decimal", "8 skupin pravidel, peníze přesně, zaokrouhlení nahoru", .5, .1],
+  ["ph-database", "SQLite", "historie, duplicity, audit; jedinečnost hlídá index", .85, .16],
+  ["ph-lightning", "FastAPI", "web + REST API /v1, API klíč, limit čtení", .85, .5],
+  ["ph-plugs-connected", "MCP server", "8 nástrojů pro agenty, žádný neplatí ani neschvaluje", .85, .84],
+  ["ph-printer", "Playwright", "kreslí faktury do PDF, fotí obrazovky", .32, .9],
+  ["ph-check-square-offset", "pytest + GitHub Actions", "108 testů po každé změně, bez sítě a bez AI", .68, .9],
+];
+function renderHub() {
+  $("#hub").insertAdjacentHTML("beforeend", STACK.map(([ic, t, s, x, y]) =>
+    `<div class="it" style="left:${x * 100}%;top:${y * 100}%"><i class="ph ${ic}"></i><div><b>${esc(t)}</b><span>${esc(s)}</span></div></div>`).join(""));
+  drawWires();
+}
+function drawWires() {
+  const hub = $("#hub"), svg = $("#hubwires");
+  if (matchMedia("(max-width:1000px)").matches) { svg.innerHTML = ""; return; }
+  const box = hub.getBoundingClientRect(), c = $("#hub .core").getBoundingClientRect();
+  const cx = c.left - box.left + c.width / 2, cy = c.top - box.top + c.height / 2;
+  svg.innerHTML = [...hub.querySelectorAll(".it")].map(el => {
+    const r = el.getBoundingClientRect(), x = r.left - box.left + r.width / 2, y = r.top - box.top + r.height / 2;
+    const mx = (cx + x) / 2;
+    return `<path class="hwire" d="M${cx},${cy} C${mx},${cy} ${mx},${y} ${x},${y}"/>`;
+  }).join("");
+}
+addEventListener("resize", drawWires);
+renderHub();
 
 init();
 </script>

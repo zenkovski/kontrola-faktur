@@ -59,3 +59,23 @@ Ten případ ale zastaví pravidla (cizí IČO u objednávky).
 Z PDF (textová vrstva) 10 z 10 bez chyby. Žádná chyba čtení nevedla ke schválení: špatný účet = STOP,
 špatná položka = REVIEW. Ukázky se proto čtou z PDF, fotky přes obrázek.
 **Další nápad:** QR platbu číst kódem (cv2) a porovnat s účtem a částkou, které přečetla AI.
+
+## 2026-10-21 — kontrola kódu jako senior: 3 cesty k falešnému schválení
+Postup: podezření nejdřív ověřit sondou na skutečném kódu, opravit jen potvrzené, zamknout testem (`tests/test_regressions.py`).
+
+**Potvrzeno a opraveno:**
+- Stejné číslo faktury jinak zapsané + jiné datum → **APPROVE (dvojí platba)**. Teď `number_key()` (bez mezer, pomlček, velikosti písmen) + částečný UNIQUE index na `(supplier_ico, number_key)`.
+- Položka rozdělená na 2 řádky (40 + 40, objednáno 40) → **APPROVE**. Teď se kusy sčítají podle položky.
+- Stejná objednávka vyfakturovaná znovu pod novým číslem → **APPROVE**. Teď tabulka `invoice_lines`, sčítá se s dřívějšími nezastavenými fakturami.
+- Faktura na 0 Kč → APPROVE. Teď `TOTAL_NOT_POSITIVE` / `LINE_NOT_POSITIVE` = REVIEW.
+- Zaokrouhlení 0,125 → 0,12 (výchozí ROUND_HALF_EVEN). Teď ROUND_HALF_UP.
+- Účet s nulami navíc → falešné STOP. Teď `account_key()`.
+- MCP otevřel jakoukoliv cestu. Teď jen `data/`, `inbox/`, `.tmp/uploads/` nebo `KONTROLA_FAKTUR_FILES`.
+- `/api/render` na špatná data spadl 500. Teď validace přes `InvoiceIn` → 422. Podezření na HTML injection se **nepotvrdilo** (datum a čísla padnou na parsování dřív).
+
+**Přidáno:** text z PDF čte kód (PyMuPDF) a dostane ho hlídač; fotka = vždy aspoň REVIEW (`READ_FROM_PHOTO`); nepovedené čtení = REVIEW (`EXTRACTION_FAILED`), ne chyba; volitelný `X-API-Key` (`KONTROLA_FAKTUR_API_KEY`); limit 2 souběžná / 20 za hodinu čtení přes AI; audit `/v1/history` + MCP `invoice_history` (důvody, zdroj, verze pravidel, čas); migrace starých `history.db`.
+Na stránce upozornění „Ukázkový projekt“, sekce „Z čeho je postavený“ a patička jako v RAG-Demu.
+
+Testy: 108 zelených. Ověřeno i naživo: MCP přes skutečné stdio spojení (8 nástrojů), REST API na běžícím serveru, stránka na 1440 a 390 px bez chyb v konzoli.
+
+**Zůstává:** uživatelské účty a fronta ke schválení (kdo pustil platbu), ARES a registr DPH naživo, QR platba kódem, ostré měření 40 faktur přes API, veřejné nasazení.

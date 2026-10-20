@@ -58,7 +58,8 @@ def invoice_check(
     annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True),
 )
 def invoice_read_file(
-    path: str = Field(..., description="Absolute path to a PDF, PNG, JPG or WEBP invoice on this computer"),
+    path: str = Field(..., description="Absolute path to a PDF, PNG, JPG or WEBP invoice inside the allowed "
+                                        "folders (project data/ and inbox/, or KONTROLA_FAKTUR_FILES)"),
 ) -> dict:
     """Let the AI read an invoice document and return its data, ready for invoice_check.
 
@@ -69,9 +70,10 @@ def invoice_read_file(
     Returns: {invoice: {...same fields as invoice_check expects...}, seconds, cached}
     """
     try:
-        return service.read(path)
-    except (ExtractionError, ValueError, FileNotFoundError) as e:
-        return {"error": str(e), "hint": "Check the path and the file type (PDF, PNG, JPG, WEBP)."}
+        read = service.read(path)
+    except (ExtractionError, ValueError, FileNotFoundError, PermissionError) as e:
+        return {"error": str(e), "hint": "Check the path, the allowed folders and the file type (PDF, PNG, JPG, WEBP)."}
+    return {k: v for k, v in read.items() if k != "document_text"}
 
 
 @mcp.tool(
@@ -82,15 +84,16 @@ def invoice_read_file(
 def invoice_read_and_check(
     path: str = Field(..., description="Absolute path to a PDF, PNG, JPG or WEBP invoice on this computer"),
 ) -> dict:
-    """Read an invoice file with AI, then check it with the rules. Same as invoice_read_file + invoice_check.
+    """Read an invoice file with AI, then check it with the rules. Preferred over calling the two tools,
+    because it also scans the PDF text for hidden instructions and marks photos for a person.
+    If the AI cannot read the file, the decision is REVIEW (EXTRACTION_FAILED), never APPROVE.
 
-    Returns: {read: {invoice, seconds, cached}, check: {decision, replay, invoice_id, steps}}
+    Returns: {read: {invoice, seconds, cached, source}, check: {decision, replay, invoice_id, steps}}
     """
     try:
-        read = service.read(path)
-    except (ExtractionError, ValueError, FileNotFoundError) as e:
-        return {"error": str(e), "hint": "Check the path and the file type (PDF, PNG, JPG, WEBP)."}
-    return {"read": read, "check": service.check(read["invoice"])}
+        return service.read_and_check(path)
+    except (ValueError, FileNotFoundError, PermissionError) as e:
+        return {"error": str(e), "hint": "Check the path, the allowed folders and the file type (PDF, PNG, JPG, WEBP)."}
 
 
 @mcp.tool(name="invoice_list_demo", title="List demo invoices", annotations=READ_ONLY)
@@ -117,6 +120,12 @@ def invoice_get_demo(
 def invoice_reference_data() -> dict:
     """Return the company's suppliers (with bank accounts on file), purchase orders and goods receipts."""
     return service.reference()
+
+
+@mcp.tool(name="invoice_history", title="Audit trail", annotations=READ_ONLY)
+def invoice_history(limit: int = Field(20, ge=1, le=200, description="How many recent decisions")) -> dict:
+    """Recent decisions with their reasons, data source and rules version, newest first."""
+    return {"decisions": service.history(limit)}
 
 
 @mcp.tool(name="invoice_rules", title="How decisions are made", annotations=READ_ONLY)

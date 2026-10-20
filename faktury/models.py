@@ -1,8 +1,10 @@
 """Data types. Money is always Decimal, never float."""
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from enum import Enum
 
 
@@ -19,7 +21,24 @@ class Decision(str, Enum):
 
 
 def money(value) -> Decimal:
-    return Decimal(str(value)).quantize(Decimal("0.01"))
+    # Czech invoices round half up (0.125 -> 0.13); Python's default would give 0.12
+    return Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def number_key(invoice_number: str) -> str:
+    """'FV-2026/0458', 'fv 2026 0458' and 'FV20260458' are the same invoice for duplicate checks."""
+    return re.sub(r"[^0-9A-Z]", "", unicodedata.normalize("NFKD", invoice_number).upper())
+
+
+def account_key(account: str) -> str:
+    """'000000-2400123456/2010' and '2400123456/2010' are the same Czech account."""
+    a = account.replace(" ", "")
+    if "/" not in a:
+        return a
+    acc, bank = a.rsplit("/", 1)
+    prefix, number = acc.split("-", 1) if "-" in acc else ("", acc)
+    prefix, number = prefix.lstrip("0"), number.lstrip("0")
+    return f"{prefix}-{number}/{bank}" if prefix else f"{number}/{bank}"
 
 
 @dataclass(frozen=True)
