@@ -2,6 +2,9 @@
 
 # Kontrola faktur: AI reads, code decides
 
+[![tests](https://github.com/zenkovski/kontrola-faktur/actions/workflows/tests.yml/badge.svg)](https://github.com/zenkovski/kontrola-faktur/actions/workflows/tests.yml)
+
+
 An invoice checker for Czech companies. A person uploads or photographs an invoice, the AI reads it,
 and **deterministic, tested code** decides whether it may be paid: **APPROVE**, **REVIEW** or **STOP**, with every reason.
 

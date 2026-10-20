@@ -2,6 +2,9 @@
 
 # Kontrola faktur: AI čte, kód rozhoduje
 
+[![tests](https://github.com/zenkovski/kontrola-faktur/actions/workflows/tests.yml/badge.svg)](https://github.com/zenkovski/kontrola-faktur/actions/workflows/tests.yml)
+
+
 Kontrola došlých faktur pro české firmy. Člověk fakturu nahraje nebo vyfotí, AI ji přečte
 a **pevný, otestovaný kód** rozhodne, jestli se smí zaplatit: **Schválit**, **Zkontrolovat** nebo **Zastavit**.
 U každého výsledku je přesný důvod.
