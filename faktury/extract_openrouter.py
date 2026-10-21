@@ -50,14 +50,18 @@ def _post(body: dict, key: str, timeout: int = 60) -> dict:
         return json.loads(r.read().decode("utf-8"))
 
 
+def cache_path(text: str, cache_dir: str | Path) -> Path:
+    key_hash = hashlib.sha256(f"{MODEL}|{PROMPT_VERSION}|{SYSTEM}|{text}".encode()).hexdigest()[:24]
+    return Path(cache_dir) / f"{key_hash}.json"
+
+
 def read_text(text: str, cache_dir: str | Path | None = None,
               before_call: Callable[[], None] | None = None) -> tuple[Invoice, dict, float, bool, dict]:
     """Returns (invoice, normalized raw data, seconds, cached, usage).
 
     before_call runs only when a real (paid) call is about to happen: the place for a daily budget.
     """
-    key_hash = hashlib.sha256(f"{MODEL}|{PROMPT_VERSION}|{SYSTEM}|{text}".encode()).hexdigest()[:24]
-    cache = Path(cache_dir) / f"{key_hash}.json" if cache_dir else None
+    cache = cache_path(text, cache_dir) if cache_dir else None
     if cache and cache.exists():
         c = json.loads(cache.read_text(encoding="utf-8"))
         return to_invoice(c["raw"]), c["raw"], 0.0, True, c.get("usage", {})

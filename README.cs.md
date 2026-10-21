@@ -81,6 +81,8 @@ Hlavní myšlenka: **jazykový model se smí splést.** Nikdy nerozhoduje. Špat
 | Automatické testy | **123 zelených**, bez sítě a bez volání AI, po každé změně (GitHub Actions) |
 | Kontrola kódu 20. 10. 2026 | **3 cesty k falešnému schválení** nalezeny a opraveny, každá s regresním testem (níže) |
 
+Každé číslo v tabulce jde ověřit asi za 2 sekundy, bez API klíče: [reports/HOW-TO-VERIFY.md](reports/HOW-TO-VERIFY.md).
+
 V tom je smysl celé architektury: fotky jsou nepřesné, modely se pletou a systém je přesto bezpečný.
 
 Měřicí sada (`data/eval/`, `scripts/run_eval.py`) počítá přesnost polí, shodu rozhodnutí, falešná schválení, cenu a rychlost.

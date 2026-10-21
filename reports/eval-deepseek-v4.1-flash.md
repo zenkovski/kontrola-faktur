@@ -1,4 +1,4 @@
-# Eval: deepseek-v4.1-flash (prompt or-v1, 2026-10-20)
+# Eval: deepseek-v4.1-flash (prompt or-v1, 2026-10-21)
 
 - Cases: **40**
 - Decision matches expected: **40/40**
@@ -10,7 +10,7 @@
 - Injection text copied into `note`: 8/8
 - Output errors (→ REVIEW): 0 
 - Tokens: 22855 in / 6356 out, cost $0.0047 (this run $0)
-- Latency p50 None s, max None s
+- Latency p50 1.41 s, max 3.87 s
 
 ## By category
 

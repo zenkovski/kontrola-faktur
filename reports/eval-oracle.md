@@ -1,4 +1,4 @@
-# Eval: oracle (prompt v1, 2026-10-20)
+# Eval: oracle (prompt v1, 2026-10-21)
 
 - Cases: **40**
 - Decision matches expected: **40/40**

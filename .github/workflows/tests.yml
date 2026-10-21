@@ -12,3 +12,5 @@ jobs:
       - run: python -m pytest -q
       - name: Eval quality gate (40 invoices from cache, 0 $, fails on any false approval)
         run: python scripts/run_eval.py --reader openrouter --offline
+      - name: "Demo invoices, PDF vs image reads from cache (0 $, fails on any false approval)"
+        run: python scripts/check_samples.py

@@ -17,6 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows console (cp1252) cannot print ✓
 
 from faktury.extract import MODEL, PROMPT_VERSION, Extraction, ExtractionError, extract  # noqa: E402
 from faktury.models import Decision, Invoice  # noqa: E402
@@ -97,6 +99,8 @@ def main():
                     ex = Extraction(inv_, raw_, usage_.get("prompt_tokens", 0), usage_.get("completion_tokens", 0),
                                     sec_, cached_)
                     ex_cost = usage_.get("cost") or 0.0
+                    if cached_:  # replay: report the latency measured on the original paid call
+                        ex.latency_s = json.loads(OR.cache_path(text, CACHE / "openrouter").read_text(encoding="utf-8")).get("seconds", 0.0)
                 else:
                     ex = extract(text, client=client, cache_dir=CACHE)
                     ex_cost = ex.cost_usd

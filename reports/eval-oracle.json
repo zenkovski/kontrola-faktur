@@ -2,7 +2,7 @@
   "summary": {
     "mode": "oracle",
     "prompt_version": "v1",
-    "date": "2026-10-20",
+    "date": "2026-10-21",
     "cases": 40,
     "decision_accuracy": 1.0,
     "extraction_exact": 1.0,

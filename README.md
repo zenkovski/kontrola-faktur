@@ -82,6 +82,8 @@ or a successful prompt injection can at worst send a valid invoice to a person, 
 | Automated tests | **123 passing**, no network, no AI calls, on every push (GitHub Actions) |
 | Code review of 2026-10-20 | **3 ways to a false APPROVE** found and fixed, each with a regression test (below) |
 
+Every number above can be checked in about 2 seconds, without an API key: [reports/HOW-TO-VERIFY.md](reports/HOW-TO-VERIFY.md).
+
 That is the point of the architecture: photos are noisy, models misread, and the system stays safe anyway.
 
 The eval set (`data/eval/`, `scripts/run_eval.py`) measures field accuracy, decision accuracy, false approvals, cost
