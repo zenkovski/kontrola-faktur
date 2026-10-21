@@ -10,6 +10,9 @@
 An invoice checker for Czech companies. A person uploads or photographs an invoice, the AI reads it,
 and **deterministic, tested code** decides whether it may be paid: **APPROVE**, **REVIEW** or **STOP**, with every reason.
 
+**Live demo: [kontrola-faktur.web-ukazka.pages.dev](https://kontrola-faktur.web-ukazka.pages.dev)** (the 10 demo invoices; the check runs in your browser,
+Python via Pyodide, the same code as here).
+
 The page is built as a challenge: **try to fool it.** Swap the bank account, raise a price, send the same
 invoice twice, or hide a message for the AI inside the invoice.
 
@@ -105,6 +108,13 @@ probe against the real code, then fix only what was confirmed, then lock it with
 Also added while there: the PDF text layer is read by code and goes to the guard (so an AI that hides an injection
 does not hide it from the guard), a failed AI read returns REVIEW instead of an error, an optional API key,
 a limit on AI reads, and an audit trail endpoint.
+
+## Public web version
+
+[kontrola-faktur.web-ukazka.pages.dev](https://kontrola-faktur.web-ukazka.pages.dev) is a static build on Cloudflare Pages: `python scripts/build_static.py` → `site/`.
+There is no Python server, so the check runs in the visitor's browser through Pyodide, using the same `Service` and
+`InvoiceIn` as the API (`web/static_api.py`). The 10 demo invoices use the cached AI readings, so the public page
+never calls a paid model. Uploading your own invoice needs the local version below.
 
 ## Try it locally
 
@@ -240,7 +250,7 @@ All companies, people and numbers are made up. IČO numbers are generated with a
 - Live checks against ARES (company register) and the register of unreliable VAT payers, with caching and a
   safe default (REVIEW) when the register is down.
 - Approval queue with an audit log (new → checked → approved / rejected).
-- Public deployment of the page.
+- Upload of your own invoices on the public page (now local only: every AI read costs money).
 
 ## Built with
 

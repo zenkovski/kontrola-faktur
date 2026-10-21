@@ -11,6 +11,9 @@ Kontrola došlých faktur pro české firmy. Člověk fakturu nahraje nebo vyfot
 a **pevný, otestovaný kód** rozhodne, jestli se smí zaplatit: **Schválit**, **Zkontrolovat** nebo **Zastavit**.
 U každého výsledku je přesný důvod.
 
+**Živá ukázka: [kontrola-faktur.web-ukazka.pages.dev](https://kontrola-faktur.web-ukazka.pages.dev)** (10 ukázkových faktur; kontrola běží přímo v prohlížeči,
+Python přes Pyodide, stejný kód jako tady).
+
 Stránka je postavená jako výzva: **zkus ji oklamat.** Podvrhni bankovní účet, zdraž položku, pošli stejnou
 fakturu dvakrát nebo do faktury schovej vzkaz pro AI.
 
@@ -104,6 +107,13 @@ na skutečném kódu, opravit jen potvrzené a zamknout testem (`tests/test_regr
 Přibylo taky: text z PDF čte kód a dostane ho hlídač (AI, která útok zamlčí, ho před hlídačem neschová),
 nepovedené čtení AI vrací Zkontrolovat místo chyby, volitelný API klíč, limit čtení přes AI a historie rozhodnutí.
 
+## Veřejná webová verze
+
+[kontrola-faktur.web-ukazka.pages.dev](https://kontrola-faktur.web-ukazka.pages.dev) je statická stránka na Cloudflare Pages: `python scripts/build_static.py` → `site/`.
+Python server tam neběží, takže kontrola běží v prohlížeči návštěvníka přes Pyodide. Používá stejnou `Service`
+a `InvoiceIn` jako API (`web/static_api.py`). 10 ukázek používá uložená čtení, takže veřejná stránka nikdy
+nevolá placený model. Vlastní fakturu nahraješ jen v místní verzi.
+
 ## Spuštění u sebe
 
 ```bash
@@ -190,7 +200,7 @@ Tady ho zastaví pravidla (IČO nesedí s objednávkou), ale samotný hlídač b
 - Těžší měření: naskenované a vyfocené faktury, skutečné vzhledy faktur dodavatelů.
 - Živé ověření v ARES a v registru nespolehlivých plátců DPH, s mezipamětí a bezpečnou volbou (Zkontrolovat), když registr nejede.
 - Fronta ke schválení se záznamem kdo, kdy a proč.
-- Veřejné nasazení stránky.
+- Nahrávání vlastních faktur i na veřejné stránce (zatím jen lokálně: každé čtení přes AI stojí peníze).
 
 Všechny firmy, lidé a čísla jsou smyšlené. IČO jsou vygenerovaná s platnou kontrolní číslicí.
 

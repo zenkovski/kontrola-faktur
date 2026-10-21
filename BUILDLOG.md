@@ -96,3 +96,12 @@ Testy: 108 zelených. Ověřeno i naživo: MCP přes skutečné stdio spojení (
 - **Past (CI červená):** služba kontrolovala „je nainstalovaný Claude Code?“ dřív, než se podívala do cache.
   U mě lokálně prošlo (Claude mám), v CI ne. Na serveru bez Claude by nefungovaly ani uložené odpovědi.
   Teď cache první; test `test_cached_answers_work_without_claude_installed`. Testy pouštím i s Claude vyřazeným z PATH. 123 testů.
+
+## 2026-10-21 — veřejný web na Cloudflare (statická verze)
+- Živě: https://kontrola-faktur.web-ukazka.pages.dev (preview větev CF projektu `web-ukazka`, limit projektů je plný).
+- `python scripts/build_static.py` → `site/` (gitignored). Kontrola běží v prohlížeči přes Pyodide: stejná `Service`
+  a `InvoiceIn` (`web/static_api.py`), napojení na stránku v `web/static-api.js` (podvrhne `fetch("/api/...")`).
+- 10 ukázek = uložené čtení DeepSeekem (build má rozpočet 0, takže nic placeného nezavolá). Nahrávání na webu vypnuté.
+- Překreslení faktury: HTML z `render_invoices.html()` → SVG s `foreignObject` → obrázek. Bez Playwrightu.
+- Nasazení: klíče z `../.env`, `npx --yes wrangler@3 pages deploy site --project-name=web-ukazka --branch=kontrola-faktur --commit-dirty=true`.
+- Ověřeno Playwrightem naživo: 01 = Schválit, znovu = už viděl, cizí účet = Zastavit, vzkaz pro AI = Zastavit, 0 chyb v konzoli.
