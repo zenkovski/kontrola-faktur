@@ -105,3 +105,10 @@ Testy: 108 zelených. Ověřeno i naživo: MCP přes skutečné stdio spojení (
 - Překreslení faktury: HTML z `render_invoices.html()` → SVG s `foreignObject` → obrázek. Bez Playwrightu.
 - Nasazení: klíče z `../.env`, `npx --yes wrangler@3 pages deploy site --project-name=web-ukazka --branch=kontrola-faktur --commit-dirty=true`.
 - Ověřeno Playwrightem naživo: 01 = Schválit, znovu = už viděl, cizí účet = Zastavit, vzkaz pro AI = Zastavit, 0 chyb v konzoli.
+
+## 2026-10-21 — Red-Team fáze 6: čtyři Medium nálezy opraveny (RT-KF-01, 04, 05, 06)
+- **RT-KF-01:** sazba DPH 50 % prošla, když seděly součty. Teď `VAT_RATE_INVALID` (REVIEW) pro cokoliv mimo 0 / 12 / 21 % (`VAT_RATES` v `checks.py`; model má jednu sazbu na fakturu).
+- **RT-KF-04 + 05:** NaN, Infinity, prázdný řetězec a přetečení (`1E+999999`) shazovaly pipeline (`InvalidOperation`) a AI cesty vracely 500. Teď `to_decimal()` v `models.py` (používá ho `money`, `Line.from_dict`, `Invoice.from_dict` i `vat_rate`): neplatné nebo >1e15 → `ValueError`. `service.read` hodnoty ověří dřív, než čtení vrátí (→ `ExtractionError`): `/v1/read` 422, `/v1/read-and-check` a MCP `invoice_read_and_check` = REVIEW (`EXTRACTION_FAILED`), MCP `invoice_read_file` chybová odpověď.
+- **RT-KF-06:** poškozené / prázdné / falešné PDF vyhodilo výjimku z fitz (500, pád MCP). `pdf_text` ji teď převede na `ExtractionError` s českou hláškou → 422 / REVIEW.
+- Rozhodnutí ukázek a 40 eval faktur se nezměnila. 141 testů (18 nových, `tests/test_regressions.py`, názvy s `rt_kf_*`).
+- Poznámka: jádro u NaN házejí čistý `ValueError`; Red-Team harness `kf_core` každou výjimku označí „crash“, proto KF-C-09 a KF-F-01..05 tam zůstávají jako prolomené, i když je chování správné.

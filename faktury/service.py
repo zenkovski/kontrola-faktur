@@ -92,7 +92,7 @@ READER_LABEL = {"openrouter": "DeepSeek v4.1 Flash", "claude-cli": "Claude Haiku
 
 STEPS = [
     ("ico", "IČO dodavatele", {"ICO_INVALID"}),
-    ("math", "Součty a DPH", {"SUBTOTAL_MISMATCH", "VAT_MISMATCH", "TOTAL_MISMATCH"}),
+    ("math", "Součty a DPH", {"SUBTOTAL_MISMATCH", "VAT_MISMATCH", "TOTAL_MISMATCH", "VAT_RATE_INVALID"}),
     ("supplier", "Dodavatel a bankovní účet", {"SUPPLIER_UNKNOWN", "BANK_ACCOUNT_CHANGED"}),
     ("match", "Objednávka a převzaté zboží", {"PO_MISSING", "PO_SUPPLIER_MISMATCH", "CURRENCY_MISMATCH",
                                                "RECEIPT_MISSING", "LINE_NOT_ORDERED", "QTY_OVER_ORDERED",
@@ -108,7 +108,8 @@ The decision is made by deterministic code. Free text on the invoice is never re
 
 Checks and their codes:
 - ico: ICO_INVALID (STOP) - Czech company ID fails the modulo 11 check digit.
-- math: SUBTOTAL_MISMATCH, VAT_MISMATCH, TOTAL_MISMATCH (STOP) - printed numbers do not add up.
+- math: SUBTOTAL_MISMATCH, VAT_MISMATCH, TOTAL_MISMATCH (STOP) - printed numbers do not add up;
+  VAT_RATE_INVALID (REVIEW) - VAT rate is not a legal Czech rate (0, 12, 21 %).
 - supplier: SUPPLIER_UNKNOWN (REVIEW); BANK_ACCOUNT_CHANGED (STOP) - account differs from the one on file.
 - match (invoice vs purchase order vs goods receipt): PO_MISSING, RECEIPT_MISSING, LINE_NOT_ORDERED,
   QTY_OVER_ORDERED, QTY_OVER_RECEIVED, PRICE_MISMATCH (>1 %) (REVIEW); PO_SUPPLIER_MISMATCH, CURRENCY_MISMATCH (STOP).
@@ -194,6 +195,10 @@ class Service:
                                       if not is_pdf else
                                       "Čtení PDF tu není nastavené (chybí OPENROUTER_API_KEY i Claude Code).")
             reader = "claude-cli"
+        try:
+            Invoice.from_dict(raw)  # RT-KF-05: reject NaN/Infinity/junk from the reader before it leaves
+        except ValueError as e:
+            raise ExtractionError(f"AI vrátila neplatná čísla ({e}).") from None
         return {"invoice": raw, "seconds": round(seconds, 1), "cached": cached,
                 "source": "pdf" if is_pdf else "photo", "reader": READER_LABEL.get(reader, reader),
                 "document_text": text}
@@ -241,8 +246,11 @@ def pdf_text(path: Path) -> str:
     """Text layer of a PDF, read by code (no AI). The guard scans it for instructions aimed at an AI."""
     import fitz
 
-    with fitz.open(path) as doc:
-        return "\n".join(page.get_text() for page in doc)[:20000]
+    try:  # RT-KF-06: broken, empty or fake PDFs raise fitz errors
+        with fitz.open(path) as doc:
+            return "\n".join(page.get_text() for page in doc)[:20000]
+    except Exception:
+        raise ExtractionError("Soubor nejde přečíst jako PDF (je poškozený, prázdný nebo to PDF není).") from None
 
 
 def allowed_roots() -> list[Path]:

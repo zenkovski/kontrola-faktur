@@ -263,3 +263,90 @@ def test_history_endpoint():
     c.post("/v1/check", json=json.loads((DATA / "invoices" / "04-cizi-ucet.json").read_text(encoding="utf-8")))
     h = c.get("/v1/history").json()
     assert h[0]["decision"] == "STOP" and h[0]["reasons"]
+
+
+# --- Red-Team phase 6 (RT-KF-01, 04, 05, 06) --------------------------------
+
+def test_rt_kf_01_invalid_vat_rate_is_review():
+    """RT-KF-01: 50 % VAT with matching sums must not be APPROVE."""
+    inv = load("01-v-poradku")
+    sub = inv.subtotal
+    r = process(replace(inv, vat_rate=Decimal("0.50"), vat_amount=money(sub * Decimal("0.5")),
+                        total=sub + money(sub * Decimal("0.5"))), BOOKS, Store())
+    assert r.decision.value == "REVIEW" and "VAT_RATE_INVALID" in codes(r)
+
+
+@pytest.mark.parametrize("rate", ["0", "0.12", "0.21", "0.210"])
+def test_rt_kf_01_legal_vat_rates_pass(rate):
+    inv = consistent(load("01-v-poradku"), vat_rate=Decimal(rate))
+    assert "VAT_RATE_INVALID" not in codes(process(inv, BOOKS, Store()))
+
+
+@pytest.mark.parametrize("field,value", [("qty", "NaN"), ("unit_price", "NaN"), ("qty", "Infinity"),
+                                          ("unit_price", "1E+999999"), ("qty", "")])
+def test_rt_kf_04_non_finite_line_value_is_clean_error(field, value):
+    """RT-KF-04: NaN/Infinity/overflow in a line is a ValueError at the model boundary, not InvalidOperation."""
+    d = json.loads((DATA / "invoices" / "01-v-poradku.json").read_text(encoding="utf-8"))
+    d["lines"][0][field] = value
+    with pytest.raises(ValueError):
+        Invoice.from_dict(d)
+
+
+@pytest.mark.parametrize("field,value", [("total", "NaN"), ("subtotal", ""), ("vat_amount", "-Infinity"),
+                                          ("vat_rate", "1E+999999")])
+def test_rt_kf_05_non_finite_invoice_value_is_clean_error(field, value):
+    """RT-KF-05: same at the invoice level (also vat_rate overflow)."""
+    d = json.loads((DATA / "invoices" / "01-v-poradku.json").read_text(encoding="utf-8"))
+    d[field] = value
+    with pytest.raises(ValueError):
+        Invoice.from_dict(d)
+
+
+def _bad_read(monkeypatch, field, value, tmp_path):
+    from faktury import service as sv
+
+    d = json.loads((DATA / "invoices" / "01-v-poradku.json").read_text(encoding="utf-8"))
+    d[field] = value
+    monkeypatch.setattr(sv, "read_file", lambda p, c: (None, d, 0.1, True))
+    return Service(str(tmp_path / "h.db")), DATA / "pdf" / "01-v-poradku.pdf"
+
+
+def test_rt_kf_05_read_and_check_with_nan_is_review(monkeypatch, tmp_path):
+    """RT-KF-05: AI read with NaN -> REVIEW (EXTRACTION_FAILED), no exception (service/MCP path)."""
+    svc, pdf = _bad_read(monkeypatch, "total", "NaN", tmp_path)
+    out = svc.read_and_check(pdf)
+    assert out["check"]["decision"] == "REVIEW"
+    assert any(f["code"] == "EXTRACTION_FAILED" for s in out["check"]["steps"] for f in s["findings"])
+
+
+def test_rt_kf_05_rest_read_endpoints_with_nan(monkeypatch, tmp_path):
+    """RT-KF-05: /v1/read -> 422, /v1/read-and-check -> 200 REVIEW, never 500."""
+    from web import app as webapp
+
+    svc, pdf = _bad_read(monkeypatch, "vat_rate", "1E+999999", tmp_path)
+    monkeypatch.setattr(webapp, "service", svc)
+    c = TestClient(webapp.app, raise_server_exceptions=False)
+    body = pdf.read_bytes()
+    assert c.post("/v1/read", content=body).status_code == 422
+    r = c.post("/v1/read-and-check", content=body)
+    assert r.status_code == 200 and r.json()["check"]["decision"] == "REVIEW"
+
+
+@pytest.mark.parametrize("content", [b"", b"%PDF-1.4\ngarbage garbage"])
+def test_rt_kf_06_broken_pdf_is_clean_error(tmp_path, content, monkeypatch):
+    """RT-KF-06: broken/empty/fake PDF -> REST 422 with Czech message, read_and_check -> REVIEW, no fitz exception."""
+    from faktury import service as sv
+    from web import app as webapp
+
+    monkeypatch.setenv("KONTROLA_FAKTUR_FILES", str(tmp_path))
+    f = tmp_path / "x.pdf"
+    f.write_bytes(content)
+    svc = Service(str(tmp_path / "h.db"))
+    with pytest.raises(sv.ExtractionError):
+        svc.read(f)
+    assert svc.read_and_check(f)["check"]["decision"] == "REVIEW"
+    monkeypatch.setattr(webapp, "service", svc)
+    monkeypatch.setattr(webapp, "_save_upload", lambda body: f)
+    c = TestClient(webapp.app, raise_server_exceptions=False)
+    r = c.post("/v1/read", content=b"%PDF-1.4 x")
+    assert r.status_code == 422 and "PDF" in r.text

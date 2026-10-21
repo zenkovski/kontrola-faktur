@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import Enum
 
 
@@ -20,9 +20,24 @@ class Decision(str, Enum):
     STOP = "STOP"
 
 
+MAX_ABS = Decimal("1e15")  # far above any real invoice, far below Decimal's overflow
+
+
+def to_decimal(value) -> Decimal:
+    """Parse a number from outside input. NaN, Infinity, junk and absurdly large values -> ValueError,
+    never an arithmetic crash later in the pipeline (RT-KF-04, RT-KF-05)."""
+    try:
+        d = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise ValueError(f"Neplatné číslo: {str(value)[:40]!r}") from None
+    if not d.is_finite() or abs(d) > MAX_ABS:
+        raise ValueError(f"Číslo mimo povolený rozsah: {str(value)[:40]!r}")
+    return d
+
+
 def money(value) -> Decimal:
     # Czech invoices round half up (0.125 -> 0.13); Python's default would give 0.12
-    return Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return to_decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def number_key(invoice_number: str) -> str:
@@ -53,7 +68,7 @@ class Line:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Line":
-        return cls(sku=d["sku"], qty=Decimal(str(d["qty"])), unit_price=money(d["unit_price"]))
+        return cls(sku=d["sku"], qty=to_decimal(d["qty"]), unit_price=money(d["unit_price"]))
 
 
 @dataclass(frozen=True)
@@ -81,7 +96,7 @@ class Invoice:
             bank_account=d["bank_account"].replace(" ", ""),
             po_number=d.get("po_number"),
             lines=tuple(Line.from_dict(x) for x in d["lines"]),
-            vat_rate=Decimal(str(d["vat_rate"])),
+            vat_rate=to_decimal(d["vat_rate"]),
             subtotal=money(d["subtotal"]),
             vat_amount=money(d["vat_amount"]),
             total=money(d["total"]),

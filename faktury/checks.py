@@ -7,6 +7,7 @@ from .ico import ico_valid
 from .models import Finding, Invoice, PurchaseOrder, Receipt, Severity, Supplier, account_key, money
 
 PRICE_TOLERANCE = Decimal("0.01")  # 1 % unit price difference is still OK
+VAT_RATES = (Decimal("0"), Decimal("0.12"), Decimal("0.21"))  # legal Czech rates; one rate per invoice
 VAT_TOLERANCE = Decimal("1.00")  # rounding on the invoice, CZK
 
 
@@ -25,6 +26,10 @@ def check_arithmetic(inv: Invoice) -> list[Finding]:
         out.append(Finding("SUBTOTAL_MISMATCH", Severity.STOP,
                            f"Součet řádků je {lines_sum}, ale faktura uvádí základ {inv.subtotal}.",
                            {"computed": str(lines_sum), "stated": str(inv.subtotal)}))
+    if inv.vat_rate not in VAT_RATES:  # RT-KF-01: a made-up rate must not pass just because the sums fit
+        out.append(Finding("VAT_RATE_INVALID", Severity.REVIEW,
+                           f"Sazba DPH {inv.vat_rate:%} není platná česká sazba (0 %, 12 %, 21 %).",
+                           {"stated": str(inv.vat_rate)}))
     vat = money(inv.subtotal * inv.vat_rate)
     if abs(vat - inv.vat_amount) > VAT_TOLERANCE:
         out.append(Finding("VAT_MISMATCH", Severity.STOP,
