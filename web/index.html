@@ -59,7 +59,12 @@ a{color:inherit}
 .logo .m{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:var(--accent-ink);font-size:14px;box-shadow:0 0 18px var(--glow)}
 .nav a.l{font-size:13.5px;color:var(--soft);text-decoration:none;padding:7px 12px;border-radius:999px}
 .nav a.l:hover{background:var(--panel-2);color:var(--text)}
-@media (max-width:560px){.nav a.l.opt{display:none}}
+.nav{transition:transform .35s cubic-bezier(.2,.7,.2,1),opacity .35s}
+.nav.hide{transform:translateY(-130%);opacity:0}
+.nav a.gh{display:flex;align-items:center;gap:6px;margin-left:6px;font-size:13px;font-weight:600;color:var(--accent-ink);background:var(--accent);text-decoration:none;padding:7px 13px;border-radius:999px}
+.nav a.gh:hover{filter:brightness(1.08)}
+.nav a.gh i{font-size:16px}
+@media (max-width:560px){.nav a.l.opt{display:none}.nav a.gh span{display:none}.nav a.gh{padding:7px 9px}}
 
 /* úvod s aurorou */
 .hero{position:relative;overflow:hidden;margin-top:-62px;padding:140px 0 50px;isolation:isolate;text-align:center}
@@ -183,6 +188,7 @@ td input{margin:0;padding:6px 9px}
 .demonote{max-width:660px;margin:44px auto 0;padding:11px 16px;border:1px solid rgb(var(--accent-rgb) / .35);background:rgb(var(--accent-rgb) / .07);border-radius:14px;font-size:13.5px;line-height:1.55;color:var(--soft);text-align:left}
 .demonote b{color:var(--text);font-weight:600}
 .sec .demonote{margin:18px 0 0;max-width:none}
+.hero .demonote{margin-top:40px}
 
 /* stack (hvězdicové schéma, stejně jako RAG-Demo) */
 .hub{position:relative;height:480px;border:1px solid var(--line-2);border-radius:20px;background:radial-gradient(500px 260px at 50% 50%,rgb(var(--accent-rgb) / .08),transparent),var(--bg-2);overflow:hidden}
@@ -234,7 +240,9 @@ footer .built b{color:var(--text);font-weight:600}
   <a class="l" href="#app">Vyzkoušet</a>
   <a class="l opt" href="#jak">Jak to funguje</a>
   <a class="l opt" href="#stack">Z čeho je</a>
+  <a class="gh" href="https://github.com/zenkovski/kontrola-faktur" target="_blank" rel="noopener" aria-label="Zdrojový kód na GitHubu"><i class="ph ph-github-logo"></i><span>GitHub</span></a>
 </div></nav>
+<script>(()=>{const n=document.querySelector(".nav");let y=scrollY;addEventListener("scroll",()=>{const c=scrollY;if(Math.abs(c-y)<6)return;n.classList.toggle("hide",c>y&&c>120);y=c},{passive:true})})()</script>
 
 <header class="hero">
   <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
