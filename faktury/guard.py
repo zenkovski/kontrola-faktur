@@ -18,6 +18,14 @@ PATTERNS = [
     r"\b(system|systém)\s*:.{0,20}\b(schval\w*|approve\w*|ignor\w*)",
     r"\b(předschválen\w*|preapproved|pre-approved)\b",
     r"\bdecision\s*=",
+    # Instructions to overwrite an extracted field (IČO, bank account, amount...). A real supplier
+    # does not tell the reader to rewrite the data; this is the IČO/account spoofing vector.
+    r"\b(přepiš\w*|přepsat|změň\w*|změnit|nahraď\w*|nahradit|oprav\w*|opravit|uprav\w*|upravit|exportuj\w*|"
+    r"rewrite|replace|overwrite|override|change|set)\b.{0,40}"
+    r"\b(ič[oč]|ičo|iban|účt\w*|účet|účtu|číslo\s+účtu|částk\w*|dodavatel\w*|supplier|account|amount|ico)\b",
+    r"\b(ič[oč]|ičo|iban|účt\w*|účet|účtu|dodavatel\w*|supplier|account)\b.{0,40}"
+    r"\b(přepiš\w*|změň\w*|nahraď\w*|oprav\w*|uprav\w*|rewrite|replace|overwrite|change|set)\b",
+    r"\bv\s+exportu\b.{0,40}\b(ič[oč]|ičo|účt\w*|účet|částk\w*|dodavatel\w*)\b",
 ]
 _RX = [re.compile(p, re.IGNORECASE | re.DOTALL) for p in PATTERNS]
 

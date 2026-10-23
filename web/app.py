@@ -41,8 +41,11 @@ service = Service(os.environ.get("KONTROLA_FAKTUR_DB", ":memory:"))
 render_lock = threading.Lock()
 MAX_UPLOAD = 10_000_000
 
-# Optional API key for /v1. Without it the API is open, which is fine on localhost only.
+# API key for /v1. Safe by default: if no key is configured the API refuses every /v1 call, so a
+# production deploy that forgets the key is closed, not wide open. For local development without a
+# key, set KONTROLA_FAKTUR_ALLOW_OPEN=1 explicitly.
 API_KEY = os.environ.get("KONTROLA_FAKTUR_API_KEY")
+ALLOW_OPEN = os.environ.get("KONTROLA_FAKTUR_ALLOW_OPEN") == "1"
 
 # Every AI read costs money or quota: at most 2 at once and 20 per hour per client.
 AI_SLOTS = threading.BoundedSemaphore(2)
@@ -52,8 +55,13 @@ _reads_lock = threading.Lock()
 
 
 def require_key(x_api_key: str | None = Header(None)) -> None:
-    if API_KEY and not (x_api_key and secrets.compare_digest(x_api_key, API_KEY)):
-        raise HTTPException(401, "Missing or wrong X-API-Key header.")
+    if API_KEY:
+        if not (x_api_key and secrets.compare_digest(x_api_key, API_KEY)):
+            raise HTTPException(401, "Missing or wrong X-API-Key header.")
+        return
+    if not ALLOW_OPEN:
+        raise HTTPException(503, "API key not configured. Set KONTROLA_FAKTUR_API_KEY, "
+                                 "or KONTROLA_FAKTUR_ALLOW_OPEN=1 for local development.")
 
 
 def ai_budget(request: Request) -> None:

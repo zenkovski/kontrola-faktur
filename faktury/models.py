@@ -40,9 +40,26 @@ def money(value) -> Decimal:
     return to_decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+# Cyrillic / Greek capitals that look identical to a Latin capital. We fold them to Latin so a
+# look-alike character cannot smuggle a second invoice past the duplicate check (RT-KF homoglyph).
+_CONFUSABLES = str.maketrans({
+    "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C",
+    "Т": "T", "У": "Y", "Х": "X", "Ѕ": "S", "І": "I", "Ј": "J",
+    "Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z", "Η": "H", "Ι": "I", "Κ": "K", "Μ": "M", "Ν": "N",
+    "Ο": "O", "Ρ": "P", "Τ": "T", "Υ": "Y", "Χ": "X",
+})
+# Keep digits, Latin A-Z, and Czech accented capitals. Everything else (spaces, punctuation,
+# unmapped exotic letters) is dropped. Accents are kept, so 'Č' stays distinct from 'C' and two
+# genuinely different numbers are not merged into one (the old NFKD form collapsed them).
+_NUMBER_DROP = re.compile(r"[^0-9A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]")
+
+
 def number_key(invoice_number: str) -> str:
-    """'FV-2026/0458', 'fv 2026 0458' and 'FV20260458' are the same invoice for duplicate checks."""
-    return re.sub(r"[^0-9A-Z]", "", unicodedata.normalize("NFKD", invoice_number).upper())
+    """'FV-2026/0458', 'fv 2026 0458' and 'FV20260458' are the same invoice for duplicate checks.
+    Look-alike Cyrillic/Greek letters are folded to Latin so they cannot hide a duplicate; accents
+    are preserved so distinct numbers are not wrongly merged."""
+    s = unicodedata.normalize("NFC", invoice_number).upper().translate(_CONFUSABLES)
+    return _NUMBER_DROP.sub("", s)
 
 
 def account_key(account: str) -> str:
